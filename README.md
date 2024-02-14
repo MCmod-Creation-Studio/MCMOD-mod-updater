@@ -11,7 +11,7 @@
 通过Zmail发送邮件。如果你希望用邮件通知你上传的话，运行ZmailOut.py
 
 运行效果：
-![[Pasted image 20240214142809.png]]
+![Pasted image 20240214142809](https://github.com/IBeiKui/MCMOD-mod-updater/assets/50074117/116e2e48-403b-40d8-90ea-822ebcc99665)
 
 如果你想定时获取更新，我推荐你使用Microsoft荣誉出品的任务计划程序定时运行本程序。
 ## 前置
