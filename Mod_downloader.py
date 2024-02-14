@@ -9,7 +9,7 @@ headers = {
 def requests_download(url, mcmod_id, time, file_name, file_date, game_versions, release_type):
     print("正在下载：" + url)
     jar = rq.get(url).content
-    content = "fileName:" + file_name + "\nMcmodID:" + mcmod_id + "\ndownloadUrl:" + url + "\nfileDate:" + file_date + "\ngameVersions:" + game_versions + " \nfileState:" + release_type
+    content = "fileName:" + file_name + "\nMcmodID:" + str(mcmod_id) + "\ndownloadUrl:" + url + "\nfileDate:" + file_date + "\ngameVersions:" + game_versions + " \nfileState:" + release_type
     makedirs('./{0}'.format(time, file_name), exist_ok=True)
     with open('./{0}/{1}.jar'.format(time, file_name), 'wb') as file:
         file.write(jar)
