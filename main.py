@@ -120,7 +120,7 @@ def latest_upload():
                 else:
                     LatestTime = "读取失败"
             except Exception as Er:
-                print(f"{NumID} 出现错误:{Er}，跳过该项")
+                print(f"{NumID - 1} 出现错误:{Er}，跳过该项")
                 LatestTime = "读取过程出现错误"
             finally:
                 time_update("Latest", NumID, LatestTime)
