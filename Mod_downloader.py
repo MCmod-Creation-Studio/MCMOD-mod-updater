@@ -32,8 +32,12 @@ def download_mod(website, mcmod_id, time, project_id, file_id):
             # 2 = Beta
             # 3 = Alpha
             gameVersions = str(k["data"]["gameVersions"])
-            requests_download(downloadUrl, mcmod_id, str(time).replace(" ", "+").replace(":", "-"), fileName,
-                              fileDate.replace(":", "-"), gameVersions, releaseType)
+            requests_download(downloadUrl, mcmod_id,
+                              str(time).replace(" ", "+").replace(":", "-"),
+                              fileName,
+                              fileDate.replace(":", "-"),
+                              gameVersions,
+                              releaseType)
 
         elif website == "Modrinth":
             k = rq.get(r'https://api.modrinth.com/v2/project/{0}/version/{1}'.format(project_id, i),
@@ -43,5 +47,10 @@ def download_mod(website, mcmod_id, time, project_id, file_id):
             fileDate = k["date_published"]
             releaseType = k["version_type"]
             gameVersions = str(k["loaders"] + k["game_versions"])
-            requests_download(downloadUrl, mcmod_id, str(time).replace(" ", "+").replace(":", "-"), fileName,
-                              fileDate.replace(":", "-"), gameVersions, releaseType)
+            requests_download(downloadUrl,
+                              mcmod_id,
+                              str(time).replace(" ", "+").replace(":", "-"),
+                              fileName,
+                              fileDate.replace(":", "-"),
+                              gameVersions,
+                              releaseType)
