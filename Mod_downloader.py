@@ -11,9 +11,9 @@ def requests_download(url, mcmod_id, time, file_name, file_date, game_versions, 
     jar = rq.get(url).content
     content = "fileName:" + file_name + "\nMcmodID:" + str(mcmod_id) + "\ndownloadUrl:" + url + "\nfileDate:" + file_date + "\ngameVersions:" + game_versions + " \nfileState:" + release_type
     makedirs('./{0}'.format(time, file_name), exist_ok=True)
-    with open('./{0}/{1}.jar'.format(time, file_name), 'wb') as file:
+    with open('./{0}/{1}'.format(time, file_name), 'wb') as file:
         file.write(jar)
-    with open('./{0}/{1}.txt'.format(time, file_name), 'a') as file:
+    with open('./{0}/{1}.txt'.format(time, file_name.replace(".jar","")), 'a') as file:
         file.write(content)
 
 
@@ -32,7 +32,7 @@ def download_mod(website, mcmod_id, time, project_id, file_id):
             # 2 = Beta
             # 3 = Alpha
             gameVersions = str(k["data"]["gameVersions"])
-            requests_download(downloadUrl, mcmod_id, str(time).replace(" ", "+").replace(":", "-"), fileName.replace(".jar", ""),
+            requests_download(downloadUrl, mcmod_id, str(time).replace(" ", "+").replace(":", "-"), fileName,
                               fileDate.replace(":", "-"), gameVersions, releaseType)
 
         elif website == "Modrinth":
@@ -43,5 +43,5 @@ def download_mod(website, mcmod_id, time, project_id, file_id):
             fileDate = k["date_published"]
             releaseType = k["version_type"]
             gameVersions = str(k["loaders"] + k["game_versions"])
-            requests_download(downloadUrl, mcmod_id, str(time).replace(" ", "+").replace(":", "-"), fileName.replace(".jar", ""),
+            requests_download(downloadUrl, mcmod_id, str(time).replace(" ", "+").replace(":", "-"), fileName,
                               fileDate.replace(":", "-"), gameVersions, releaseType)
