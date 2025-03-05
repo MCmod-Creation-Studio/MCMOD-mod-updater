@@ -1,6 +1,6 @@
-import config_reader
+import config
 
-config = config_reader.config
+config = config.config
 
 if config.Zmail_enable:
     import ZmailOut

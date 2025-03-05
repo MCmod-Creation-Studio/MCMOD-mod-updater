@@ -1,5 +1,5 @@
 # 导入必要的模块和库
-import config_reader
+import config
 from datetime import datetime
 import zmail
 from Data_updater import DuplicatesList
@@ -11,14 +11,14 @@ def read_env():
     :return: 包含环境变量配置的字典
     """
     # 从配置文件中读取邮件服务所需的配置
-    config = config_reader.Config()
+    cg = config.config
     env = {
-        "zmail_host": config.ZMAIL_HOST,
-        "zmail_port": config.ZMAIL_PORT,
-        "zmail_ssl": config.ZMAIL_SSL,
-        "zmail_username": config.ZMAIL_USERNAME,
-        "zmail_password": config.ZMAIL_PASSWORD,
-        "zmail_to": config.ZMAIL_TO
+        "zmail_host": cg.ZMAIL_HOST,
+        "zmail_port": cg.ZMAIL_PORT,
+        "zmail_ssl": cg.ZMAIL_SSL,
+        "zmail_username": cg.ZMAIL_USERNAME,
+        "zmail_password": cg.ZMAIL_PASSWORD,
+        "zmail_to": cg.ZMAIL_TO
     }
     return env
 
