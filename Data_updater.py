@@ -1,5 +1,5 @@
 # 导入所需的模块和库
-import config_reader
+import config
 from datetime import datetime
 import PyTaskbar
 import requests as rq
@@ -11,7 +11,7 @@ from urllib3 import disable_warnings as urllib3_disable_warnings
 # 导入自定义下载器模块
 from Mod_downloader import download_mod
 
-config = config_reader.Config()
+config = config.Config()
 DATABASE_PATH = config.DATABASE_PATH
 download_enable = config.download_enable
 
@@ -27,7 +27,8 @@ red_fill = PatternFill(patternType='solid', fgColor='D94600')  # 红色
 max_rowFIX = unmatchedSum = matchedSum = rq.session().keep_alive = False
 DuplicatesList = []
 processesTime = datetime.now()
-# 设置请求头
+validify_processesTime = str(processesTime).replace(" ", "+").replace(":", "-")
+processes_download_mark = False
 
 
 # 检查环境变量是否设置了DATABASE_PATH
@@ -94,7 +95,7 @@ def get_modrinth_api_json(mr_project_id):
 
 # 处理最新上传的模组信息
 def latest_upload():
-    global LatestTime, headers, DuplicatesList, matchedSum, unmatchedSum, max_rowFIX, Json
+    global LatestTime, headers, DuplicatesList, matchedSum, unmatchedSum, max_rowFIX, Json, processes_download_mark
     with Progress() as progress:
         task = progress.add_task("[red]正在初始化......", total=max_rowFIX)
         for NumID in range(2, max_rowFIX + 2):
@@ -151,7 +152,8 @@ def latest_upload():
                     if pastJson:
                         fileID = list(set(fileIDs).difference(set(eval(pastJson))))
                         if download_enable:
-                            download_mod(Website, Vexl("B", NumID), processesTime, ID, fileID)
+                            download_mod(Website, Vexl("B", NumID), validify_processesTime, ID, fileID)
+                            processes_download_mark = True
                 else:
                     matchedSum += 1
                 print(NumID - 1, ModName, LatestTime)
@@ -165,6 +167,9 @@ time_update("Latest", 1, processesTime)
 time_update("Json", 1, processesTime)
 # 开始处理最新上传的模组信息
 latest_upload()
+if download_enable and config.Selenium_enable:
+    config.write_config("LastModified", validify_processesTime)
+    config.write_config("Finished_upload", False)
 
 # 打印总结信息
 print(f"匹配：{matchedSum}，不匹配{unmatchedSum}")
@@ -179,7 +184,7 @@ try:
     print("所有改动已成功保存")
 except Exception as E:
     new_path = DATABASE_PATH.replace(".xlsx", f"_{datetime.now().strftime('%Y%m%d%H%M%S')}.xlsx")
-    print("保存出错: {0}\n 将保存至新文件{1}.xlsx')}".format(E, new_path))
+    print("保存出错: {0}\n 将保存至新文件{1}.xlsx".format(E, new_path))
     wb.save(new_path)
 # 更新任务栏状态
 prog.setState('done')
