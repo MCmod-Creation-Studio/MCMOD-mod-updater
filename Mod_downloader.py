@@ -1,14 +1,19 @@
 # 导入必要的模块，并检查CURSEFORGE_API_KEY环境变量是否已设置
-from os import makedirs, getenv
+import config_reader
+from os import makedirs
 import requests as rq
 from tqdm import tqdm
 
-if not getenv('CURSEFORGE_API_KEY'):
+CURSEFORGE_API_KEY = config_reader.config.CURSEFORGE_API_KEY
+TIMEOUT_RETRY = config_reader.config.TIMEOUT_RETRY
+DOWNLOAD_PATH = config_reader.config.DOWNLOAD_PATH
+
+if not CURSEFORGE_API_KEY:
     raise Exception('CURSEFORGE_API_KEY environment variable not set.')
 # 设置请求头，使用CURSEFORGE_API_KEY环境变量
 headers = {
     'Accept': 'application/json',
-    'x-api-key': getenv('CURSEFORGE_API_KEY')
+    'x-api-key': CURSEFORGE_API_KEY
 }
 
 
@@ -24,32 +29,32 @@ def requests_download(url, mcmod_id, time, file_name, file_date, game_versions, 
     :param release_type: 发布类型（发行版、测试版、alpha等）
     """
     print("正在下载：" + url)
-    makedirs('./{0}'.format(time, file_name), exist_ok=True)  # 创建保存目录（如果不存在）
+    makedirs('./{0}/{1}'.format(DOWNLOAD_PATH, time, file_name), exist_ok=True)  # 创建保存目录（如果不存在）
     # 构建包含Mod信息的字符串
     content = "fileName:" + file_name + "\nMcmodID:" + str(
-        mcmod_id) + "\ndownloadUrl:" + url + "\nfileDate:" + file_date + "\ngameVersions:" + game_versions + " \nfileState:" + release_type
+        mcmod_id) + "\ndownloadUrl:" + url + "\nfileDate:" + file_date + "\ngameVersions:" + game_versions + "\nfileState:" + release_type
     ErrorCounter = 0
-    while ErrorCounter <= 5:
+    while ErrorCounter <= TIMEOUT_RETRY:
         try:
             response = rq.get(url, stream=True, timeout=10)  # 开启流式下载
             response.raise_for_status()  # 如果请求失败，抛出异常
             total_size = int(response.headers.get('content-length', 0))  # 获取文件总大小
-            with open('./{0}/{1}'.format(time, file_name), 'wb') as file:
+            with open('./{0}/{1}/{2}'.format(DOWNLOAD_PATH, time, file_name), 'wb') as file:
                 progress_bar = tqdm(total=total_size, unit='iB', unit_scale=True)
                 for data in response.iter_content(1024):
                     file.write(data)
                     progress_bar.update(len(data))
                 progress_bar.close()
             # 将Mod信息写入文本文件
-            with open('./{0}/{1}.txt'.format(time, file_name.replace(".jar", "")), 'a') as file:
+            with open('./{0}/{1}/{2}.txt'.format(DOWNLOAD_PATH, time, file_name.replace(".jar", "")), 'a') as file:
                 file.write(content)
                 break
         except Exception as E:
-            if ErrorCounter <= 5:
+            if ErrorCounter <= TIMEOUT_RETRY:
                 print(f"下载失败：{url}，\n原因：{E}\n（重试次数：{ErrorCounter}/5）")
                 ErrorCounter += 1
             else:
-                with open('./{0}/{1}.txt'.format(time, file_name.replace(".jar", "")), 'a') as file:
+                with open('./{0}/{1}/{2}.txt'.format(DOWNLOAD_PATH, time, file_name.replace(".jar", "")), 'a') as file:
                     file.write("______！该文件下载失败！______\n" + f"原因：{E}" + content)
                 ErrorCounter = 0
 

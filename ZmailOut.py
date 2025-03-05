@@ -1,36 +1,40 @@
-
 # 导入必要的模块和库
+import config_reader
 from datetime import datetime
-from os import getenv
 import zmail
-from main import DuplicatesList
+from Data_updater import DuplicatesList
+
 
 def read_env():
     """
     读取环境变量配置
     :return: 包含环境变量配置的字典
     """
-    env={}
-    # 从环境变量中读取邮件服务所需的配置
-    env["zmail_username"] = getenv("ZMAIL_USERNAME")
-    env["zmail_password"] = getenv("ZMAIL_PASSWORD")
-    env["zmail_host"] = getenv("ZMAIL_HOST")
-    env["zmail_port"] = getenv("ZMAIL_PORT")
-    env["zmail_ssl"] = getenv("ZMAIL_SSL")
-    env["zmail_to"] = getenv("ZMAIL_TO")
+    # 从配置文件中读取邮件服务所需的配置
+    config = config_reader.Config()
+    env = {
+        "zmail_host": config.ZMAIL_HOST,
+        "zmail_port": config.ZMAIL_PORT,
+        "zmail_ssl": config.ZMAIL_SSL,
+        "zmail_username": config.ZMAIL_USERNAME,
+        "zmail_password": config.ZMAIL_PASSWORD,
+        "zmail_to": config.ZMAIL_TO
+    }
     return env
+
 
 # 读取环境变量配置
 env = read_env()
 # 检查是否设置了所有必要的环境变量
-if not all([env["zmail_username"], env["zmail_host"], env["zmail_password"], env["zmail_port"], env["zmail_ssl"], env["zmail_to"]]):
+if not all(env.values()):
     raise EnvironmentError("Please set environment variables.")
 
 # 初始化邮件服务器连接
-server = zmail.server(env["zmail_username"],env["zmail_password"],smtp_host=env["zmail_host"],smtp_port=env["zmail_port"],smtp_ssl=env["zmail_ssl"])
+server = zmail.server(env["zmail_username"], env["zmail_password"], smtp_host=env["zmail_host"],
+                      smtp_port=env["zmail_port"], smtp_ssl=env["zmail_ssl"])
 
 # 准备邮件正文
-output= ''
+output = ''
 for i in DuplicatesList:
     output += str(i) + "\n"
 
@@ -44,9 +48,9 @@ else:
 mail_body = {
     'to': env["zmail_to"],
     'from': env["zmail_username"],
-    'subject':'{}模组更新检测报告'.format(datetime.now().strftime('%Y-%m-%d %H:%M:%S')),
+    'subject': '{}模组更新检测报告'.format(datetime.now().strftime('%Y-%m-%d %H:%M:%S')),
     'content_text': content_text
 }
-print(mail_body)
+print("已发送正文：\n", mail_body)
 # 发送邮件
 server.send_mail(env["zmail_to"], mail_body)
