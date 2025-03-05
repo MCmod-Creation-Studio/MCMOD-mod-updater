@@ -1,0 +1,63 @@
+
+# == Configuration for Mcmod_mod_updater/用于Mcmod_mod_updater的配置 ==
+
+# === API token for authentication/用于认证的API令牌 ===
+# you can get your token from https://console.curseforge.com/?#/api-keys
+# 你可以从https://console.curseforge.com/?#/api-keys获取你的token
+CURSEFORGE_API_KEY: 
+
+# === Database paths/数据位置 ===
+# Path to the Excel database file that contains mod information, which is provided by MCMOD Website owner
+# 包含模组信息的Excel数据库文件的路径，由MCMOD网站所有者提供
+DATABASE_PATH: ./Database.xlsx
+
+# === Download setting/下载设置 ===
+# If you want to download the mod files, set DOWNLOAD_ON to True
+# 如果你想该程序下载Mod文件，请将DOWNLOAD_ON设置为True
+download_enable: True
+headers : {
+    'Referer': '',
+    'If-None-Match': '"LMyW4mgAfp2S0ragPuZKjIpMkas="',
+    'If-Modified-Since': 'Wed, 25 Oct 2020 09:37:56 GMT',
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.0.0',
+}
+DOWNLOAD_PATH: ./Mods
+TIMEOUT_RETRY: 5
+
+# === Selenium configuration/Selenium的浏览器配置 ===
+# If you want to use Selenium to upload new mod files to MCMOD, set Selenium_enable to True
+# 如果你想使用Selenium上传新的Mod文件到MCMOD，你需要将Selenium_enable设置为True
+# You need to set download_enable to True to use Selenium
+# 你需要将上方的download_enable设置为True才能使用Selenium
+Selenium_enable: False
+
+# If you want to use a custom driver path, fill in the path to the browser driver in Custom_driver_path, the program will use the custom driver path first
+# 如果你想使用自定义驱动路径，请在Custom_driver_path填入为浏览器驱动的路径，程序会优先使用自定义驱动路径
+CUSTOM_DRIVER_PATH:
+# Please select the browser on your computer (or custom path)
+# 请选择你电脑上（或自定义路径的）的浏览器
+# Supported browsers: Chrome, Edge, Firefox
+# 支持的浏览器：Chrome, Edge, Firefox
+Browser: Edge
+
+# === Zmail configuration/Zmail的配置 ===
+# Zmail is a simple email sending tool, you can use it to send mod update notifications to your email
+# if Zmail_enable is False, Zmail will not be used
+# Zmail是一个简单的邮件发送工具，你可以使用它将Mod更新通知发送到你的邮箱
+# 如果Zmail_enable为False，Zmail将不会被使用
+Zmail_enable: False
+
+ZMAIL_HOST: smtp.example.com
+ZMAIL_PORT: 
+ZMAIL_SSL: True
+ZMAIL_USERNAME: your_username
+ZMAIL_PASSWORD: your_password
+ZMAIL_TO: to_an_email_address
+
+# === End of configuration/配置结束 ===
+# === Please do not delete or change the content below unless you know what you are doing ===
+# === 请不要删除或更改下方的内容，除非你知道你在做什么 ===
+LastModified: 
+Finished_upload: True
+Cookies:
+
