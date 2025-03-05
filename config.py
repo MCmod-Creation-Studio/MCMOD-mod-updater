@@ -53,9 +53,9 @@ Browser: Edge
 
 # === Zmail configuration/Zmail的配置 ===
 # Zmail is a simple email sending tool, you can use it to send mod update notifications to your email
-# if Zmail_enable is False, Zmail will not be used
+# if Zmail_enable is False, Zmail will not be used. If enabled, please download zmail by yourself
 # Zmail是一个简单的邮件发送工具，你可以使用它将Mod更新通知发送到你的邮箱
-# 如果Zmail_enable为False，Zmail将不会被使用
+# 如果Zmail_enable为False，Zmail将不会被使用，如果启用，请自行下载zmail库
 Zmail_enable: False
 
 ZMAIL_HOST: smtp.example.com
