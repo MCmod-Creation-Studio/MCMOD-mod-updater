@@ -230,6 +230,9 @@ def fill_mod_detail(info):
         print("自动化操作失败：", ask_handle_reason)
         print("请手动填写信息后点击上传按钮")
         while drive.find_elements(By.XPATH, "//p[contains(text(),'成功上传文件 1 个：')]"):
+            if drive.find_elements(By.XPATH, "//p[contains(text(),'成功覆盖文件 1 个：')]"):
+                print("文件已存在，跳过上传")
+                break
             pass
 
 
