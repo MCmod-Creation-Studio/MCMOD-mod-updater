@@ -50,11 +50,6 @@ CUSTOM_DRIVER_PATH:
 # Supported browsers: Chrome, Edge, Firefox
 # 支持的浏览器：Chrome, Edge, Firefox
 Browser: Edge
-# # If you want to use QQ login, set Is_QQ_Login to True, otherwise enter your username and password of your MCMOD account
-# # 如果你想使用QQ快捷登录，请将Is_QQ_Login设置为True，否则请输入你的百科用户名和百科密码
-# Is_QQ_Login: False
-# Login_username: 
-# Login_password:
 
 # === Zmail configuration/Zmail的配置 ===
 # Zmail is a simple email sending tool, you can use it to send mod update notifications to your email
@@ -108,9 +103,6 @@ Cookies:
             self.Selenium_enable = config.get('Selenium_enable', False)
             self.CUSTOM_DRIVER_PATH = config.get('CUSTOM_DRIVER_PATH', None)
             self.Browser = config.get('Browser', 'Edge')
-            self.Is_QQ_Login = config.get('Is_QQ_Login', False)
-            self.Login_username = config.get('Login_username', None)
-            self.Login_password = config.get('Login_password', None)
 
             self.Zmail_enable = config.get('Zmail_enable', False)
             self.ZMAIL_HOST = config.get('ZMAIL_HOST', None)

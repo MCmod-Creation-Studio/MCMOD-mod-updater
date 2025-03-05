@@ -125,7 +125,6 @@ def download_mod(website, mcmod_id, time, project_id, file_id):
                     gameVersions += ["Client"]
                 if project_info["server_side"] == "required":
                     gameVersions += ["Server"]
-
                 gameType = "Java" # Modrinth只有Java版
                 # 调用函数下载文件
                 requests_download(downloadUrl,
