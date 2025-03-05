@@ -70,23 +70,26 @@
 ```shell pip install zmail```
 
 ## 配置项
-CURSEFORGE_API_KEY: CurseforgeAPI的API_KEY
-DATABASE_PATH: 给定表格的文件路径(.xlsx)
+- CURSEFORGE_API_KEY: CurseforgeAPI的API_KEY
+- DATABASE_PATH: 给定表格的文件路径(.xlsx)
 
-download_enable: 是否下载模组（默认开启）
-headers: 请求头
-DOWNLOAD_PATH: 下载路径
-TIMEOUT_RETRY: 超时重试次数
 
-Selenium_enable: 是否使用Selenium（用于模拟用户操作MC百科文件后台，需要启用download_enable选项才可用）（默认关闭）
-CUSTOM_DRIVER_PATH: 自定义浏览器驱动路径
-Browser: 浏览器
+- download_enable: 是否下载模组（默认开启）
+- headers: 请求头
+- DOWNLOAD_PATH: 下载路径
+- TIMEOUT_RETRY: 超时重试次数
 
-Zmail_enable: 是否使用Zmail（默认关闭）
-ZMAIL_HOST: 邮箱服务器
-ZMAIL_PORT: 端口
-ZMAIL_SSL: 是否使用SSL
-ZMAIL_USERNAME: 邮箱用户名
-ZMAIL_PASSWORD: 邮箱密码
-ZMAIL_TO: 发送邮件的地址
+
+- Selenium_enable: 是否使用Selenium（用于模拟用户操作MC百科文件后台，需要启用download_enable选项才可用）（默认关闭）
+- CUSTOM_DRIVER_PATH: 自定义浏览器驱动路径
+- Browser: 浏览器
+
+
+- Zmail_enable: 是否使用Zmail（默认关闭）
+- ZMAIL_HOST: 邮箱服务器
+- ZMAIL_PORT: 端口
+- ZMAIL_SSL: 是否使用SSL
+- ZMAIL_USERNAME: 邮箱用户名
+- ZMAIL_PASSWORD: 邮箱密码
+- ZMAIL_TO: 发送邮件的地址
 
