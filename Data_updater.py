@@ -167,9 +167,6 @@ time_update("Latest", 1, processesTime)
 time_update("Json", 1, processesTime)
 # 开始处理最新上传的模组信息
 latest_upload()
-if download_enable and config.Selenium_enable:
-    config.write_config("LastModified", validify_processesTime)
-    config.write_config("Finished_upload", False)
 
 # 打印总结信息
 print(f"匹配：{matchedSum}，不匹配{unmatchedSum}")

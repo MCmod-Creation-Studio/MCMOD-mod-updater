@@ -4,9 +4,10 @@ from os import makedirs
 import requests as rq
 from tqdm import tqdm
 yaml = config.yaml
-CURSEFORGE_API_KEY = config.config.CURSEFORGE_API_KEY
-TIMEOUT_RETRY = config.config.TIMEOUT_RETRY
-DOWNLOAD_PATH = config.config.DOWNLOAD_PATH
+config = config.config
+CURSEFORGE_API_KEY = config.CURSEFORGE_API_KEY
+TIMEOUT_RETRY = config.TIMEOUT_RETRY
+DOWNLOAD_PATH = config.DOWNLOAD_PATH
 
 if not CURSEFORGE_API_KEY:
     raise Exception('CURSEFORGE_API_KEY environment variable not set.')
@@ -17,7 +18,7 @@ headers = {
 }
 
 
-def requests_download(url, mcmod_id, time, file_name, file_date, game_versions, release_type, gameType):
+def requests_download(url, mcmod_id, time, file_name, file_date, game_versions, release_type, game_type):
     """
     下载Mod文件并保存，同时创建包含Mod信息的文本文件。
     :param url: 文件下载链接
@@ -27,6 +28,7 @@ def requests_download(url, mcmod_id, time, file_name, file_date, game_versions, 
     :param file_date: 文件日期
     :param game_versions: 支持的游戏版本
     :param release_type: 发布类型（发行版、测试版、alpha等）
+    :param game_type: 游戏类型（Java、Bedrock等）
     """
     print("正在下载：" + url)
     makedirs('./{0}/{1}'.format(DOWNLOAD_PATH, time, file_name), exist_ok=True)  # 创建保存目录（如果不存在）
@@ -39,7 +41,7 @@ def requests_download(url, mcmod_id, time, file_name, file_date, game_versions, 
         "fileDate": file_date,
         "gameVersions": game_versions,
         "fileState": release_type,
-        "gameType": gameType
+        "gameType": game_type
 
     }
     error_counter = 0
@@ -48,7 +50,7 @@ def requests_download(url, mcmod_id, time, file_name, file_date, game_versions, 
             response = rq.get(url, stream=True, timeout=10)  # 开启流式下载
             response.raise_for_status()  # 如果请求失败，抛出异常
             total_size = int(response.headers.get('content-length', 0))  # 获取文件总大小
-            with open('./{0}/{1}/{2}'.format(DOWNLOAD_PATH, time, file_name), 'wb', encoding="UTF-8") as file:
+            with open('./{0}/{1}/{2}'.format(DOWNLOAD_PATH, time, file_name), 'wb') as file:
                 progress_bar = tqdm(total=total_size, unit='iB', unit_scale=True)
                 for data in response.iter_content(1024):
                     file.write(data)
@@ -57,6 +59,9 @@ def requests_download(url, mcmod_id, time, file_name, file_date, game_versions, 
             # 将Mod信息写入文本文件
             with open('./{0}/{1}/{2}.yaml'.format(DOWNLOAD_PATH, time, file_name.replace(".jar", "")), 'a', encoding="UTF-8") as file:
                 yaml.dump(content, file)
+                if config.Selenium_enable:
+                    config.write_config("LastModified", time)
+                    config.write_config("Finished_upload", False)
                 break
         except Exception as E:
             if error_counter <= TIMEOUT_RETRY:
@@ -83,16 +88,18 @@ def download_mod(website, mcmod_id, time, project_id, file_id):
             if website == "Curseforge":
                 i_str = str(i)
                 # 请求Curseforge API获取文件信息
+
                 k = rq.get(r'https://api.curseforge.com/v1/mods/{0}/files/{1}'.format(project_id, i),
                            headers=headers, params={'param': '1'}, verify=False).json()
+                print(k)
                 fileName = k["data"]["fileName"]
-                downloadUrl = 'https://edge.forgecdn.net/files/{0}/{1}'.format(i_str[0:4] + "/" + i_str[4:], fileName)
+                downloadUrl = k['data']['downloadUrl']
                 fileDate = k["data"]["fileDate"]
-                releaseType = ["发行版", "测试版"][k["data"]["releaseType"] > 1]
+                releaseType = ["release", "beta"][k["data"]["releaseType"] > 1]
                 gameVersions = k["data"]["gameVersions"]
-                if k["gameID"] == 432:
+                if k["data"]["gameId"] == 432:
                     gameType = "Java"
-                elif k["gameID"] == 78022:
+                elif k["data"]["gameId"] == 78022:
                     gameType = "Bedrock"
                 else:
                     gameType = "Other"
@@ -112,7 +119,7 @@ def download_mod(website, mcmod_id, time, project_id, file_id):
                 downloadUrl = k["files"][0]["url"]
                 fileName = k["files"][0]["filename"]
                 fileDate = k["date_published"]
-                releaseType = "发行版" if k["version_type"] == "release" else "测试版"
+                releaseType = "release" if k["version_type"] == "release" else "beta"
                 gameVersions = k["loaders"] + k["game_versions"]
                 if project_info["client_side"] == "required":
                     gameVersions += ["Client"]
@@ -129,4 +136,4 @@ def download_mod(website, mcmod_id, time, project_id, file_id):
                                   gameVersions,
                                   releaseType, gameType)
     except Exception as E:
-        print("读取失败" + str(E) + "跳过此项目：" + website + ": " + project_id)
+        print("读取失败" + str(E) + "跳过此项目：" + website + ": " + str(project_id))

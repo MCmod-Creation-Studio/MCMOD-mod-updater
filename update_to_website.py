@@ -34,7 +34,7 @@ drive.implicitly_wait(3)
 if config.Cookies:
     drive.get(login_url)
     drive.delete_all_cookies()
-    for cookie in json.loads(config.Cookies):
+    for cookie in config.Cookies:
         drive.add_cookie(cookie)
     drive.refresh()
 
@@ -74,7 +74,7 @@ def login():
             #             drive.find_element(By.ID,'login_button').click()
             pass
         print("登录成功！")
-        config.write_config("Cookies", str(drive.get_cookies()))
+        config.write_config("Cookies", drive.get_cookies())
         return True
     except Exception as e:
         print("打开页面错误：", e)
@@ -98,7 +98,10 @@ def upload_mod() -> Tuple[bool, str]:
                         drive.get(f"{url}/{McmodID}")
                     # 上传文件
                     try:
-                        print(drive.find_elements(By.CLASS_NAME, "file-name"))
+                        for uploaded_file_name in drive.find_elements(By.CLASS_NAME, "file-name"):
+                            if uploaded_file_name.text == filename:
+                                print("文件已存在，跳过上传")
+                                continue
                         print("正在自动化操作，请勿接触键盘")
                         drive.find_element(By.XPATH, "//button[contains(text(),'上传文件')]").click()
                         drive.find_element(By.XPATH, "//label[@id='modfile-select-label']").click()
