@@ -17,28 +17,9 @@
 ## 前置
 软件：**Python3.8**
 
-第三方库：**requests，openpyxl，rich，urllib3，PyTaskbar**，（可选）Zmail
-
-环境变量设置：
-
-main.py：
-
-DATABASE_PATH （给定表格的路径，如：**C:/MCmodFile.xlsx**）
-
-Mod_downloader.py:
-
-CURSEFORGE_API_KEY
-
-ZmailOut.py：
-
-ZMAIL_USERNAME （发件人邮箱）
-
-ZMAIL_PASSWORD （发件人邮箱密码）
-
-ZMAIL_HOST （发信服务器地址，如：**smtp.qq.com**）
-
-ZMAIL_PORT （发信服务器地址端口，如：**465**）
-
-ZMAIL_SSL （SSL是否开启，如：**True**）
-
-ZMAIL_TO （收件人邮箱）
+## 使用
+1. 下载本项目
+2. 安装依赖
+```shell pip install -r requirements.txt```
+3. 运行
+```shell python main.py```
