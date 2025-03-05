@@ -14,6 +14,14 @@ from Mod_downloader import download_mod
 config = config.Config()
 DATABASE_PATH = config.DATABASE_PATH
 download_enable = config.download_enable
+POOL_SIZE = config.POOL_SIZE
+
+session = rq.Session()
+adapter = rq.adapters.HTTPAdapter(pool_connections=POOL_SIZE, pool_maxsize=10, max_retries=3)
+session.mount('https://', adapter)
+session.mount('http://', adapter)
+
+
 
 headers = config.headers
 
@@ -83,13 +91,13 @@ max_rowFIX -= 2
 # 获取Curseforge项目的API JSON数据
 def get_cfwidget_api_json(cf_project_id):
     global headers
-    return rq.get(f'https://api.cfwidget.com/{cf_project_id}', headers=headers, params={'param': '1'},
+    return session.get(f'https://api.cfwidget.com/{cf_project_id}', headers=headers, params={'param': '1'},
                   verify=False).json()
 
 
 # 获取Modrinth项目的API JSON数据
 def get_modrinth_api_json(mr_project_id):
-    return rq.get(f'https://api.modrinth.com/v2/project/{mr_project_id}', params={'param': '1'},
+    return session.get(f'https://api.modrinth.com/v2/project/{mr_project_id}', params={'param': '1'},
                   headers=headers, verify=False).json()
 
 

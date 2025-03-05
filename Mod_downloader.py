@@ -9,6 +9,7 @@ CURSEFORGE_API_KEY = config.CURSEFORGE_API_KEY
 TIMEOUT_RETRY = config.TIMEOUT_RETRY
 DOWNLOAD_PATH = config.DOWNLOAD_PATH
 
+
 if not CURSEFORGE_API_KEY:
     raise Exception('CURSEFORGE_API_KEY environment variable not set.')
 # 设置请求头，使用CURSEFORGE_API_KEY环境变量

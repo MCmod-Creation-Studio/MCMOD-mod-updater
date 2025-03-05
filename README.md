@@ -71,8 +71,8 @@
 
 ## 配置项
 - CURSEFORGE_API_KEY: CurseforgeAPI的API_KEY
+- POOL_SIZE: 访问线程数
 - DATABASE_PATH: 给定表格的文件路径(.xlsx)
-
 
 - download_enable: 是否下载模组（默认开启）
 - headers: 请求头
