@@ -16,6 +16,7 @@ class Config:
 # you can get your token from https://console.curseforge.com/?#/api-keys
 # 你可以从https://console.curseforge.com/?#/api-keys获取你的token
 CURSEFORGE_API_KEY: 
+POOL_SIZE: 10
 
 # === Database paths/数据位置 ===
 # Path to the Excel database file that contains mod information, which is provided by MCMOD Website owner
@@ -89,6 +90,7 @@ Cookies:
 
             self.CURSEFORGE_API_KEY = config.get('CURSEFORGE_API_KEY', None)
             self.DATABASE_PATH = config.get('DATABASE_PATH', None)
+            self.POOL_SIZE = config.get('POOL_SIZE', 10)
 
             self.download_enable = config.get('download_enable', False)
             self.headers = config.get('headers', {
