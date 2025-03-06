@@ -205,7 +205,7 @@ def fill_mod_detail(info):
     #     drive.find_element(By.XPATH, "//label[@for='class-data-api-9-upload']").click()  # who r u?
     #     function_tick = True
     if "datapack" in info['gameVersions'] or "Datapack" in info['gameVersions']:
-        drive.find_element(By.XPATH, "//label[@for='class-data-api-5-upload']").click()  # TODO:实际上木有这个
+        drive.find_element(By.XPATH, "//label[@for='class-data-api-5-upload']").click()
         function_tick = True
         auto_tick_content += "数据包 "
     if info['fileName'].endswith(".mcaddon"):
