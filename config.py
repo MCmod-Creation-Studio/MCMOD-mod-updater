@@ -16,12 +16,16 @@ class Config:
 # you can get your token from https://console.curseforge.com/?#/api-keys
 # 你可以从https://console.curseforge.com/?#/api-keys获取你的token
 CURSEFORGE_API_KEY: 
-POOL_SIZE: 10
+POOL_SIZE: 5
 
 # === Database paths/数据位置 ===
 # Path to the Excel database file that contains mod information, which is provided by MCMOD Website owner
 # 包含模组信息的Excel数据库文件的路径，由MCMOD网站所有者提供
+# The program will delete expired download cache folders, you can set the maximum number of cache folders and the maximum survival time of cache folders (unit: days)
+# 程序会删除过期的下载缓存文件夹，你可以设置最大缓存文件夹数量和缓存文件夹的最大存活时间（单位：天）
 DATABASE_PATH: ./Database.xlsx
+MAX_DOWNLOAD_CACHE_FOLDERS: 5
+MAX_DOWNLOAD_CACHE_AGE_DAYS: 30
 
 # === Download setting/下载设置 ===
 # If you want to download the mod files, set DOWNLOAD_ON to True
@@ -90,7 +94,9 @@ Cookies:
 
             self.CURSEFORGE_API_KEY = config.get('CURSEFORGE_API_KEY', None)
             self.DATABASE_PATH = config.get('DATABASE_PATH', None)
-            self.POOL_SIZE = config.get('POOL_SIZE', 10)
+            self.POOL_SIZE = config.get('POOL_SIZE', 5)
+            self.MAX_DOWNLOAD_CACHE_FOLDERS = config.get('MAX_DOWNLOAD_CACHE_FOLDERS', 5)
+            self.MAX_DOWNLOAD_CACHE_AGE_DAYS = config.get('MAX_DOWNLOAD_CACHE_AGE_DAYS', 30)
 
             self.download_enable = config.get('download_enable', False)
             self.headers = config.get('headers', {
@@ -144,8 +150,8 @@ Cookies:
             if self.Selenium_enable:
                 if self.CUSTOM_DRIVER_PATH is not None and os.path.exists(self.CUSTOM_DRIVER_PATH) is False:
                     raise FileNotFoundError(f"CUSTOM_DRIVER_PATH '{self.CUSTOM_DRIVER_PATH}' not found.")
-                if not self.Browser:
-                    raise ValueError("Browser is not set.")
+                if self.Browser not in ['Chrome', 'Edge', 'Firefox']:
+                    raise ValueError("Browser is not supported.")
 
 
     def write_config(self,key,value):
