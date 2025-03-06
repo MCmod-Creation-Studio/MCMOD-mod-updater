@@ -219,8 +219,8 @@ def fill_mod_detail(info):
 
     # 文件标签
     # Snapshot: 快照Beta: 测试版Dev: 开发版Lite: 精简版Client: 仅客户端Server: 仅服务端
-        # 如果所有版本都是快照版本
-    if all([is_valid_version(version) and "w" in version for version in info['gameVersions']]):
+        # 如果所有版本都是快照版本 "w" 或 "Snapshot" 且 is_valid_version
+    if all([is_valid_version(version) for version in info['gameVersions']]) and all(["w" in version or "Snapshot" in version for version in info['gameVersions']]):
         drive.find_element(By.XPATH, "//label[@for='class-data-tags-snapshot-upload']").click()
         tag_tick = True
         auto_tick_content += "Snapshot "
