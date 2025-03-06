@@ -20,7 +20,7 @@
    - 验证必要配置（如 API 密钥、数据库路径）
 
 2. **模组信息获取**：
-   - 从 Curseforge 或 Modrinth API 获取模组文件信息
+   - 从 Curseforge 或 Modrinth API 获取模组文件信息，保存在本地便于后续上传
    - 解析响应，获取文件名、下载链接、日期和版本信息
 
 3. **文件下载过程**：
@@ -28,14 +28,16 @@
    - 使用流式下载，显示进度条
    - 下载失败时自动重试（最多 `TIMEOUT_RETRY` 次）
    - 保存模组文件及其元数据（YAML 格式）
+   - 如果超过设定的缓存文件存活时间或最大文件夹数，则删除旧文件
 
 4. **数据库更新**：
    - 更新 Excel 数据库中的模组信息
-   - 保存更改，失败时创建备份文件
+   - 如果文件无法写入，则会在原位置创建新的备份
+   - 与数据库中的信息进行比对，找出有更新的模组
 
 5. **可选的自动上传**：
    - 如果启用，使用 Selenium 自动化浏览器
-   - 访问 MCMOD 网站并上传新下载的模组文件
+   - 访问 MCMOD 网站，读取本地的模组文件信息，并上传新下载的模组文件
    - 通过配置中的 `LastModified` 和 `Finished_upload` 跟踪进度
    - 使用配置中的 `Cookies` 保存登录状态，避免重复登录
 
@@ -71,13 +73,15 @@
 
 ## 配置项
 - CURSEFORGE_API_KEY: CurseforgeAPI的API_KEY
-- POOL_SIZE: 访问线程数
+- POOL_SIZE: 并发线程数
 - DATABASE_PATH: 给定表格的文件路径(.xlsx)
 
 - download_enable: 是否下载模组（默认开启）
 - headers: 请求头
 - DOWNLOAD_PATH: 下载路径
 - TIMEOUT_RETRY: 超时重试次数
+- MAX_DOWNLOAD_CACHE_FOLDERS: 最大缓存文件夹数
+- MAX_DOWNLOAD_CACHE_AGE: 缓存文件存活时间（单位：天）
 
 
 - Selenium_enable: 是否使用Selenium（用于模拟用户操作MC百科文件后台，需要启用download_enable选项才可用）（默认关闭）
