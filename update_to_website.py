@@ -8,7 +8,7 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from typing import Tuple
 import config
-import json
+from distutils.version import LooseVersion
 
 yaml = config.yaml
 config = config.config
@@ -89,48 +89,50 @@ def login():
 def upload_mod() -> Tuple[bool, str]:
     # 先打开上传页面
     # https://modfile-dl.mcmod.cn/admin/{McmodID}
-    last_McmodID = ""
     listdir = os.listdir(upload_folder)
     listdir.reverse()
+    last_McmodID = ""
     for path in listdir:
         # 打开txt文件
         if path.endswith(".yaml"):
-            skip_mark = False
             try:
                 with open(os.path.join(upload_folder, path), 'r', encoding='utf-8') as file:
                     content = yaml.load(file)
                     filename = content['fileName']
                     print("正在上传：", filename)
+                    skip_mark = False
                     McmodID = content['McmodID']
                     if last_McmodID != McmodID:
                         last_McmodID = McmodID
                         drive.get(f"{url}/{McmodID}")
                         # 上传文件
-                        try:
-                            for uploaded_file_name in drive.find_elements(By.CLASS_NAME, "file-name"):
-                                if uploaded_file_name.text == filename:
-                                    print("文件已存在，跳过上传")
-                                    skip_mark = True
-                            if skip_mark:
-                                continue
-                            print("正在自动化操作，请勿接触键盘")
-                            drive.find_element(By.XPATH, "//button[contains(text(),'上传文件')]").click()
-                            drive.find_element(By.XPATH, "//label[@id='modfile-select-label']").click()
-                            time.sleep(1)
-                            to_type = os.path.abspath(os.path.join(upload_folder, filename))
-                            pyperclip.copy(to_type)
-                            pyautogui.hotkey('ctrl', 'v')
-                            time.sleep(0.5)
-                            pyautogui.typewrite("\n", interval=2)
-                            time.sleep(0.5)
-                            fill_mod_detail(content)
-                            time.sleep(12)
-                            drive.find_element(By.XPATH, "//button[@id='modfile-upload-btn']").click()
-                            time.sleep(0.5)
+                    try:
+                        for uploaded_file_name in drive.find_elements(By.CLASS_NAME, "file-name"):
+                            if uploaded_file_name.text == filename:
+                                print("文件已存在，跳过上传")
+                                skip_mark = True
+                        if skip_mark:
+                            skip_mark = False
+                            continue
+                        print("正在自动化操作，请勿接触键盘")
+                        drive.find_element(By.XPATH, "//button[contains(text(),'上传文件')]").click()
+                        drive.find_element(By.XPATH, "//label[@id='modfile-select-label']").click()
+                        time.sleep(1)
+                        to_type = os.path.abspath(os.path.join(upload_folder, filename))
+                        pyperclip.copy(to_type)
+                        pyautogui.hotkey('ctrl', 'v')
+                        time.sleep(0.5)
+                        pyautogui.typewrite("\n", interval=2)
+                        time.sleep(0.5)
+                        fill_mod_detail(content)
+                        time.sleep(5)
+                        drive.find_element(By.XPATH, "//button[@id='modfile-upload-btn']").click()
+                        while drive.find_elements(By.XPATH, "//button[contains(text(),'妥')]") is not []:
                             drive.find_element(By.XPATH, "//button[contains(text(),'妥')]").click()
-                            time.sleep(1)
-                        except Exception as e:
-                            return False, f"上传文件错误：{e}，跳过该文件"
+                            break
+                        time.sleep(1)
+                    except Exception as e:
+                        return False, f"上传文件错误：{e}，跳过该文件"
             except Exception as e:
                 return False, f"打开文件错误：{e}，跳过该文件"
     return True, "全部文件上传成功"
@@ -153,10 +155,12 @@ def fill_mod_detail(info):
     # 支持MC版本
     # //input[@id='modfile-upload-mcver']
     content = ""
-    for version in info['gameVersions']:
-        if is_valid_version(version):
-            content += version + "/"
-    content = content[:-1]
+
+    # Sort versions using LooseVersion
+    valid_versions = [version for version in info['gameVersions'] if is_valid_version(version)]
+    sorted_versions = sorted(valid_versions, key=LooseVersion)
+    content = "/".join(sorted_versions)
+
     drive.find_element(By.ID, "modfile-upload-mcver").send_keys(content)
 
     # 支持平台
@@ -172,43 +176,44 @@ def fill_mod_detail(info):
 
     # 运作方式
     # Forge Fabric Quilt NeoForge Rift LiteLoader Sandbox 数据包 行为包 资源包 命令方块 文件覆盖 其他
-    if "forge" in info['gameVersions']:
-        drive.find_element(By.XPATH, "//label[@for='class-data-api-1-upload']']").click()
+    # 重生你按钮序号不要乱放qwq
+    if "forge" in info['gameVersions'] or "Forge" in info['gameVersions']:
+        drive.find_element(By.XPATH, "//label[@for='class-data-api-1-upload']").click()
         function_tick = True
         auto_tick_content += "Forge "
-    if "fabric" in info['gameVersions']:
-        drive.find_element(By.XPATH, "//label[@for='class-data-api-2-upload']']").click()
+    if "fabric" in info['gameVersions'] or "Fabric" in info['gameVersions']:
+        drive.find_element(By.XPATH, "//label[@for='class-data-api-2-upload']").click()
         function_tick = True
         auto_tick_content += "Fabric "
-    if "quilt" in info['gameVersions']:
-        drive.find_element(By.XPATH, "//label[@for='class-data-api-3-upload']']").click()
+    if "quilt" in info['gameVersions'] or "Quilt" in info['gameVersions']:
+        drive.find_element(By.XPATH, "//label[@for='class-data-api-11-upload']").click()
         function_tick = True
         auto_tick_content += "Quilt "
-    if "neoforge" in info['gameVersions']:
-        drive.find_element(By.XPATH, "//label[@for='class-data-api-4-upload']']").click()
+    if "neoforge" in info['gameVersions'] or "NeoForge" in info['gameVersions']:
+        drive.find_element(By.XPATH, "//label[@for='class-data-api-13-upload']").click()
         function_tick = True
         auto_tick_content += "NeoForge "
-    if "rift" in info['gameVersions']:
-        drive.find_element(By.XPATH, "//label[@for='class-data-api-5-upload']']").click()
+    if "rift" in info['gameVersions'] or "Rift" in info['gameVersions']:
+        drive.find_element(By.XPATH, "//label[@for='class-data-api-3-upload']").click()
         function_tick = True
         auto_tick_content += "Rift "
-    if "liteloader" in info['gameVersions']:
-        drive.find_element(By.XPATH, "//label[@for='class-data-api-6-upload']']").click()
+    if "liteloader" in info['gameVersions'] or "LiteLoader" in info['gameVersions']:
+        drive.find_element(By.XPATH, "//label[@for='class-data-api-4-upload']").click()
         function_tick = True
         auto_tick_content += "LiteLoader "
     # if "sandbox" in info['gameVersions']:
-    #     drive.find_element(By.XPATH, "//label[@for='class-data-api-7-upload']']").click()  # who r u?
+    #     drive.find_element(By.XPATH, "//label[@for='class-data-api-9-upload']").click()  # who r u?
     #     function_tick = True
-    if "datapack" in info['gameVersions']:
-        drive.find_element(By.XPATH, "//label[@for='class-data-api-8-upload']']").click()  # TODO:实际上木有这个
+    if "datapack" in info['gameVersions'] or "Datapack" in info['gameVersions']:
+        drive.find_element(By.XPATH, "//label[@for='class-data-api-5-upload']").click()  # TODO:实际上木有这个
         function_tick = True
         auto_tick_content += "数据包 "
     if info['fileName'].endswith(".mcaddon"):
-        drive.find_element(By.XPATH, "//label[@for='class-data-api-9-upload']']").click()
+        drive.find_element(By.XPATH, "//label[@for='class-data-api-8-upload']").click()
         function_tick = True
         auto_tick_content += "行为包 "
     if info['fileName'].endswith(".mcpack"):
-        drive.find_element(By.XPATH, "//label[@for='class-data-api-10-upload']']").click()
+        drive.find_element(By.XPATH, "//label[@for='class-data-api-12-upload']").click()
         function_tick = True
         auto_tick_content += "资源包 "
 

@@ -92,7 +92,6 @@ def download_mod(website, mcmod_id, time, project_id, file_id):
 
                 k = rq.get(r'https://api.curseforge.com/v1/mods/{0}/files/{1}'.format(project_id, i),
                            headers=headers, params={'param': '1'}, verify=False).json()
-                print(k)
                 fileName = k["data"]["fileName"]
                 downloadUrl = k['data']['downloadUrl']
                 fileDate = k["data"]["fileDate"]
