@@ -154,8 +154,6 @@ def fill_mod_detail(info):
     # 填写文件信息
     # 支持MC版本
     # //input[@id='modfile-upload-mcver']
-    content = ""
-
     # Sort versions using LooseVersion
     valid_versions = [version for version in info['gameVersions'] if is_valid_version(version)]
     sorted_versions = sorted(valid_versions, key=LooseVersion)

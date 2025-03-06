@@ -7,9 +7,10 @@ from openpyxl import load_workbook
 from openpyxl.styles import PatternFill
 from rich.progress import Progress
 from urllib3 import disable_warnings as urllib3_disable_warnings
-
+import concurrent.futures
 # 导入自定义下载器模块
 from Mod_downloader import download_mod
+import time
 
 config = config.Config()
 DATABASE_PATH = config.DATABASE_PATH
@@ -17,7 +18,7 @@ download_enable = config.download_enable
 POOL_SIZE = config.POOL_SIZE
 
 session = rq.Session()
-adapter = rq.adapters.HTTPAdapter(pool_connections=POOL_SIZE, pool_maxsize=10, max_retries=3)
+adapter = rq.adapters.HTTPAdapter(pool_connections=POOL_SIZE, pool_maxsize=POOL_SIZE, max_retries=3)
 session.mount('https://', adapter)
 session.mount('http://', adapter)
 
@@ -90,85 +91,152 @@ max_rowFIX -= 2
 
 # 获取Curseforge项目的API JSON数据
 def get_cfwidget_api_json(cf_project_id):
-    global headers
-    return session.get(f'https://api.cfwidget.com/{cf_project_id}', headers=headers, params={'param': '1'},
-                  verify=False).json()
+    retry_count = 0
+    max_retries = config.TIMEOUT_RETRY
+
+    while retry_count < max_retries:
+        try:
+            return session.get(f'https://api.cfwidget.com/{cf_project_id}',
+                          headers=headers, params={'param': '1'}, verify=False).json()
+        except Exception as e:
+            retry_count += 1
+            if retry_count >= max_retries:
+                print(f"Error getting Curseforge data for {cf_project_id} after {max_retries} attempts: {e}")
+                return {"files": []}
+            else:
+                wait_time = 2 ** retry_count  # Exponential backoff
+                print(f"Attempt {retry_count} failed for {cf_project_id}, retrying in {wait_time} seconds...")
+                time.sleep(wait_time)
 
 
-# 获取Modrinth项目的API JSON数据
 def get_modrinth_api_json(mr_project_id):
-    return session.get(f'https://api.modrinth.com/v2/project/{mr_project_id}', params={'param': '1'},
-                  headers=headers, verify=False).json()
+    retry_count = 0
+    max_retries = config.TIMEOUT_RETRY
+
+    while retry_count < max_retries:
+        try:
+            return session.get(f'https://api.modrinth.com/v2/project/{mr_project_id}',
+                               params={'param': '1'}, headers=headers, verify=False).json()
+        except Exception as e:
+            retry_count += 1
+            if retry_count >= max_retries:
+                print(f"Error getting Modrinth data for {mr_project_id} after {max_retries} attempts: {e}")
+                return {"versions": [], "updated": "Error"}
+            else:
+                wait_time = 2 ** retry_count  # Exponential backoff
+                print(f"Attempt {retry_count} failed for {mr_project_id}, retrying in {wait_time} seconds...")
+                time.sleep(wait_time)
+def process_mod(num_id):
+    mod_name = Vexl("C", num_id)
+    latest_time = ""
+    file_ids = ""
+
+    try:
+        curseforge_id = Vexl("D", num_id)
+        modrinth_id = Vexl("E", num_id)
+
+        if curseforge_id is not None:
+            website = "Curseforge"
+            if not str(curseforge_id).count("/"):
+                json_data = get_cfwidget_api_json(curseforge_id)['files']
+                file_ids = [i["id"] for i in json_data]
+                latest_time = str(dict(json_data[0])['uploaded_at'])
+            else:
+                latest_time = ""
+                for m in str(curseforge_id).split("/"):
+                    json_data = get_cfwidget_api_json(m)['files']
+                    file_ids = [i["id"] for i in json_data]
+                    latest_time += str(dict(json_data[0])['uploaded_at']) + "  "
+
+        elif modrinth_id is not None:
+            website = "Modrinth"
+            if not str(modrinth_id).count("/"):
+                json_data = get_modrinth_api_json(modrinth_id)
+                file_ids = json_data["versions"]
+                latest_time = str(json_data['updated'])
+            else:
+                latest_time = ""
+                file_ids = []
+                for m in str(modrinth_id).split("/"):
+                    json_data = get_modrinth_api_json(m)
+                    file_ids += json_data["versions"]
+                    latest_time += str(json_data['updated']) + "  "
+        else:
+            latest_time = "读取失败"
+            website = None
+
+        # Update time and check for duplicates
+        time_update("Latest", num_id, latest_time)
+        time_update("Json", num_id, file_ids)
+        matched = check_duplicates(num_id)
+
+        return {
+            "num_id": num_id,
+            "mod_name": mod_name,
+            "latest_time": latest_time,
+            "file_ids": file_ids,
+            "website": website if 'website' in locals() else None,
+            "id": curseforge_id or modrinth_id,
+            "matched": matched
+        }
+
+    except Exception as err:
+        print(f"{num_id - 1} 出现错误:{err}，跳过该项")
+        return {
+            "num_id": num_id,
+            "mod_name": mod_name,
+            "latest_time": "读取过程出现错误",
+            "file_ids": "",
+            "matched": False
+        }
+
 
 
 # 处理最新上传的模组信息
 def latest_upload():
-    global LatestTime, headers, DuplicatesList, matchedSum, unmatchedSum, max_rowFIX, Json, processes_download_mark
+    global DuplicatesList, matchedSum, unmatchedSum, processes_download_mark
+
     with Progress() as progress:
         task = progress.add_task("[red]正在初始化......", total=max_rowFIX)
-        for NumID in range(2, max_rowFIX + 2):
-            ModName = Vexl("C", NumID)
-            # 更新任务进度
-            NumProgress = "f[ {0}/{1} ]".format(NumID - 1, max_rowFIX)
-            progress.update(task, advance=1,
-                            description="[yellow]{0}正在处理：{1}".format(NumProgress, ModName))
-            prog.setProgress(int(round(NumID * 100 / max_rowFIX, 0)))
-            # 获取并处理Curseforge和Modrinth的数据
-            try:
-                CurseforgeID = Vexl("D", NumID)
-                ModrinthID = Vexl("E", NumID)
-                if CurseforgeID is not None:
-                    Website = "Curseforge"
-                    if not str(CurseforgeID).count("/"):
-                        ID = CurseforgeID
-                        Json = get_cfwidget_api_json(ID)['files']
-                        fileIDs = [i["id"] for i in Json]
-                        LatestTime = str(dict(Json[0])['uploaded_at'])
+
+        # Use ThreadPoolExecutor with pool size from config
+        with concurrent.futures.ThreadPoolExecutor(max_workers=POOL_SIZE) as executor:
+            # Submit all tasks to the executor
+            future_to_mod = {executor.submit(process_mod, num_id): num_id
+                             for num_id in range(2, max_rowFIX + 2)}
+
+            # Process results as they complete
+            for future in concurrent.futures.as_completed(future_to_mod):
+                num_id = future_to_mod[future]
+                progress.update(task, advance=1,
+                                description=f"[yellow]f[ {num_id - 1}/{max_rowFIX} ]处理中...")
+                prog.setProgress(int(round(num_id * 100 / max_rowFIX, 0)))
+
+                try:
+                    result = future.result()
+                    if not result["matched"]:
+                        DuplicatesList.append(
+                            f"{num_id}: {result['mod_name']} || {result['latest_time']} | {Vexl('G', num_id)}")
+                        unmatchedSum += 1
+
+                        # Download if needed
+                        if download_enable and 'website' in result and result['website']:
+                            pastJson = Vexl("K", num_id)
+                            if pastJson:
+                                fileID = list(set(result['file_ids']).difference(set(eval(pastJson))))
+                                if fileID:
+                                    download_mod(result['website'], Vexl("B", num_id),
+                                                 validify_processesTime, result['id'], fileID)
+                                    processes_download_mark = True
                     else:
-                        for m in str(CurseforgeID).split("/"):
-                            ID = m
-                            Json = get_cfwidget_api_json(ID)['files']
-                            fileIDs = [i["id"] for i in Json]
-                            LatestTime += str(dict(Json[0])['uploaded_at']) + "  "
+                        matchedSum += 1
 
-                elif ModrinthID is not None:
-                    Website = "Modrinth"
-                    if not str(ModrinthID).count("/"):
-                        ID = ModrinthID
-                        Json = get_modrinth_api_json(ID)
-                        fileIDs = Json["versions"]
-                        LatestTime = str(Json['updated'])
-                    else:
-                        for m in str(ModrinthID).split("/"):
-                            ID = m
-                            Json = get_modrinth_api_json(ID)
-                            fileIDs += Json["versions"]
-                            LatestTime += str(Json['updated']) + "  "
-                else:
-                    LatestTime = "读取失败"
-            except Exception as Er:
-                print(f"{NumID - 1} 出现错误:{Er}，跳过该项")
-                LatestTime = "读取过程出现错误"
-            finally:
-                # 更新时间和处理重复项
-                time_update("Latest", NumID, LatestTime)
-                time_update("Json", NumID, fileIDs)
-                if not check_duplicates(NumID):
-                    DuplicatesList.append("{0}：{1} || {2} | {3}".format(NumID, ModName, LatestTime, Vexl("G", NumID)))
-                    unmatchedSum += 1
-                    pastJson = Vexl("K", NumID)
-                    if pastJson:
-                        fileID = list(set(fileIDs).difference(set(eval(pastJson))))
-                        if download_enable:
-                            download_mod(Website, Vexl("B", NumID), validify_processesTime, ID, fileID)
-                            processes_download_mark = True
-                else:
-                    matchedSum += 1
-                print(NumID - 1, ModName, LatestTime)
-                LatestTime = fileIDs = ""
+                    print(num_id - 1, result['mod_name'], result['latest_time'])
 
-        progress.update(task, advance=1, description="[green][ √ ]已完成处理！")
+                except Exception as exc:
+                    print(f'{num_id - 1} generated an exception: {exc}')
 
+        progress.update(task, advance=0, description="[green][ √ ]已完成处理！")
 
 # 初始化时更新时间
 time_update("Latest", 1, processesTime)
