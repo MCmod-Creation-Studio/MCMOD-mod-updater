@@ -4,7 +4,9 @@ import time
 import pyautogui
 import pyperclip
 from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.service import Service as ChromeService
+from selenium.webdriver.edge.service import Service as EdgeService
+from selenium.webdriver.firefox.service import Service as FirefoxService
 from selenium.webdriver.common.by import By
 from typing import Tuple
 import config
@@ -30,7 +32,12 @@ if config.CUSTOM_DRIVER_PATH is None:
     elif config.Browser == "Edge":
         drive = webdriver.Edge()
 else:
-    service = Service(executable_path=config.CUSTOM_DRIVER_PATH)
+    if config.Browser == "Chrome":
+        drive = webdriver.Chrome(service=ChromeService(config.CUSTOM_DRIVER_PATH))
+    elif config.Browser == "Firefox":
+        drive = webdriver.Firefox(service=FirefoxService(config.CUSTOM_DRIVER_PATH))
+    elif config.Browser == "Edge":
+        drive = webdriver.Edge(service=EdgeService(config.CUSTOM_DRIVER_PATH))
 
 if drive is None:
     raise ValueError("Unable to find the browser driver.")
@@ -115,7 +122,6 @@ def upload_mod() -> Tuple[bool, str]:
                                 print("文件已存在，跳过上传")
                                 skip_mark = True
                         if skip_mark:
-                            skip_mark = False
                             continue
                         print("正在自动化操作，请勿接触键盘")
                         drive.find_element(By.XPATH, "//button[contains(text(),'上传文件')]").click()
@@ -128,7 +134,18 @@ def upload_mod() -> Tuple[bool, str]:
                         pyautogui.typewrite("\n")
                         time.sleep(0.5)
                         fill_mod_detail(content)
-                        time.sleep(5)
+
+                        # 5秒检查时间，可手动关闭页面跳过本次上传
+                        Countdown = 5
+                        while Countdown < 0:
+                            if not drive.find_elements(By.CLASS_NAME, "modal fade show"):
+                                print("检测到取消按钮，跳过上传")
+                                skip_mark = True
+                            time.sleep(1)
+                            Countdown -= 1
+                        if skip_mark:
+                            continue
+
                         drive.find_element(By.XPATH, "//button[@id='modfile-upload-btn']").click()
                         while drive.find_elements(By.XPATH, "//button[contains(text(),'妥')]") is not []:
                             drive.find_element(By.XPATH, "//button[contains(text(),'妥')]").click()
