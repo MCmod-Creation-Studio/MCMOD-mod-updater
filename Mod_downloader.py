@@ -97,6 +97,14 @@ def download_mod(website, mcmod_id, time, project_id, file_id):
                 fileDate = k["data"]["fileDate"]
                 releaseType = ["release", "beta"][k["data"]["releaseType"] > 1]
                 gameVersions = k["data"]["gameVersions"]
+
+                # 因为curseforge api没有判断数据包的功能，于是手动判断是否为数据包，但不一定准确
+                if k["data"]["fileName"].endswith(".zip"):
+                    for file in k["data"]["modules"]:
+                        if file["name"] == "pack.mcmeta":
+                            gameVersions += ["datapack"]
+                            break
+
                 if k["data"]["gameId"] == 432:
                     gameType = "Java"
                 elif k["data"]["gameId"] == 78022:
@@ -136,3 +144,8 @@ def download_mod(website, mcmod_id, time, project_id, file_id):
                                   releaseType, gameType)
     except Exception as E:
         print("读取失败" + str(E) + "跳过此项目：" + website + ": " + str(project_id))
+
+if __name__ == "__main__":
+    k = rq.get(r'https://api.curseforge.com/v1/mods/{0}/files/{1}'.format(328085, 6271934),
+               headers=headers, params={'param': '1'}, verify=False).json()
+    print(k)
