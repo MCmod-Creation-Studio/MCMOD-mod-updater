@@ -230,7 +230,7 @@ def latest_upload():
                                 pastJson = None
 
                             if pastJson:
-                                fileID = list(set(result['file_ids']).difference(set(pastJson)))
+                                fileID = list(set(result['file_ids']).difference(set(eval(pastJson))))
                                 if fileID:
                                     download_mod(result['website'], Vexl("B", num_id),
                                                  validify_processesTime, result['id'], fileID)
