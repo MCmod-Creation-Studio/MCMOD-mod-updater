@@ -16,7 +16,10 @@ config = config.config
 url = "https://modfile-dl.mcmod.cn/admin/"
 login_url = "https://www.mcmod.cn/login/"
 center_url = "https://center.mcmod.cn/"
-upload_folder = str(os.path.join(config.DOWNLOAD_PATH, config.LastModified))
+if config.DOWNLOAD_PATH and config.LastModified:
+    upload_folder = str(os.path.join(config.DOWNLOAD_PATH, config.LastModified))
+else:
+    raise ValueError("DOWNLOAD_PATH or LastModified is not set.")
 
 # 选择浏览器
 if config.CUSTOM_DRIVER_PATH is None:
