@@ -1,6 +1,9 @@
 import ruamel.yaml
 import os
+
 yaml = ruamel.yaml.YAML(typ='rt')
+
+
 class Config:
     def __init__(self, config_file='config.yaml'):
         self.config_file = config_file
@@ -100,11 +103,11 @@ Cookies:
 
             self.download_enable = config.get('download_enable', False)
             self.headers = config.get('headers', {
-    'Referer': '',
-    'If-None-Match': '"LMyW4mgAfp2S0ragPuZKjIpMkas="',
-    'If-Modified-Since': 'Wed, 25 Oct 2020 09:37:56 GMT',
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.0.0',
-})
+                'Referer': '',
+                'If-None-Match': '"LMyW4mgAfp2S0ragPuZKjIpMkas="',
+                'If-Modified-Since': 'Wed, 25 Oct 2020 09:37:56 GMT',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36 Edg/119.0.0.0',
+            })
             self.TIMEOUT_RETRY = config.get('TIMEOUT_RETRY', 5)
             self.DOWNLOAD_PATH = config.get('DOWNLOAD_PATH', None)
 
@@ -123,8 +126,6 @@ Cookies:
             self.LastModified = config.get('LastModified', None)
             self.Finished_upload = config.get('Finished_upload', True)
             self.Cookies = config.get('Cookies', None)
-
-
 
             # 检查是否为空
             if not self.CURSEFORGE_API_KEY:
@@ -153,8 +154,7 @@ Cookies:
                 if self.Browser not in ['Chrome', 'Edge', 'Firefox']:
                     raise ValueError("Browser is not supported.")
 
-
-    def write_config(self,key,value):
+    def write_config(self, key, value):
         with open(self.config_file, 'r', encoding='utf-8') as file:
             config = yaml.load(file)
         if key in config:
@@ -162,8 +162,8 @@ Cookies:
         with open(self.config_file, 'w', encoding='utf-8') as file:
             yaml.dump(config, file)
 
-config = Config()
 
+config = Config()
 
 if __name__ == "__main__":
     try:
