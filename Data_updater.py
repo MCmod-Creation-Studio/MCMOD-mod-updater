@@ -22,8 +22,6 @@ adapter = rq.adapters.HTTPAdapter(pool_connections=POOL_SIZE, pool_maxsize=POOL_
 session.mount('https://', adapter)
 session.mount('http://', adapter)
 
-
-
 headers = config.headers
 
 # 忽略urllib3的警告
@@ -38,7 +36,6 @@ DuplicatesList = []
 processesTime = datetime.now()
 validify_processesTime = str(processesTime).replace(" ", "+").replace(":", "-")
 processes_download_mark = False
-
 
 # 检查环境变量是否设置了DATABASE_PATH
 if not DATABASE_PATH:
@@ -97,7 +94,7 @@ def get_cfwidget_api_json(cf_project_id):
     while retry_count < max_retries:
         try:
             return session.get(f'https://api.cfwidget.com/{cf_project_id}',
-                          headers=headers, params={'param': '1'}, verify=False).json()
+                               headers=headers, params={'param': '1'}, verify=False).json()
         except Exception as e:
             retry_count += 1
             if retry_count >= max_retries:
@@ -126,6 +123,8 @@ def get_modrinth_api_json(mr_project_id):
                 wait_time = 2 ** retry_count  # Exponential backoff
                 print(f"Attempt {retry_count} failed for {mr_project_id}, retrying in {wait_time} seconds...")
                 time.sleep(wait_time)
+
+
 def process_mod(num_id):
     mod_name = Vexl("C", num_id)
     latest_time = ""
@@ -191,7 +190,6 @@ def process_mod(num_id):
         }
 
 
-
 # 处理最新上传的模组信息
 def latest_upload():
     global DuplicatesList, matchedSum, unmatchedSum, processes_download_mark
@@ -221,9 +219,18 @@ def latest_upload():
 
                         # Download if needed
                         if download_enable and 'website' in result and result['website']:
-                            pastJson = Vexl("K", num_id)
+                            # 寻找最近得有效list作为pastJson
+                            if not (eval(Vexl("K", num_id)) == list):
+                                pastJson = Vexl("K", num_id)
+                            elif not (eval(Vexl("L", num_id)) == list):
+                                pastJson = Vexl("L", num_id)
+                            elif not (eval(Vexl("J", num_id)) == list):
+                                pastJson = Vexl("M", num_id)
+                            else:
+                                pastJson = None
+
                             if pastJson:
-                                fileID = list(set(result['file_ids']).difference(set(eval(pastJson))))
+                                fileID = list(set(result['file_ids']).difference(set(pastJson)))
                                 if fileID:
                                     download_mod(result['website'], Vexl("B", num_id),
                                                  validify_processesTime, result['id'], fileID)
@@ -237,6 +244,7 @@ def latest_upload():
                     print(f'{num_id - 1} generated an exception: {exc}')
 
         progress.update(task, advance=0, description="[green][ √ ]已完成处理！")
+
 
 # 初始化时更新时间
 time_update("Latest", 1, processesTime)
