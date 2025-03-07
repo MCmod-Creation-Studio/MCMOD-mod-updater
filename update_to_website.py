@@ -206,6 +206,10 @@ def fill_mod_detail(info):
         drive.find_element(By.XPATH, "//label[@for='class-data-api-5-upload']").click()
         function_tick = True
         auto_tick_content += "数据包 "
+        # 对在Curseforge获取的数据包进行提醒
+        if "forgecdn" in info['downloadUrl']:
+            print("请注意，该“数据包”的文件标签判断可能不准确，因无法从Curseforge API准确判断是否为数据包")
+
     if info['fileName'].endswith(".mcaddon"):
         drive.find_element(By.XPATH, "//label[@for='class-data-api-8-upload']").click()
         function_tick = True
