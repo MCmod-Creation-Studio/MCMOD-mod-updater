@@ -177,6 +177,37 @@ def fill_mod_detail(info):
     # Sort versions using LooseVersion
     valid_versions = [version for version in info['gameVersions'] if is_valid_version(version)]
     sorted_versions = sorted(valid_versions, key=LooseVersion)
+
+    # 整合版本
+    # 当连续的版本号出现三个及以上时，将其合并为一个版本范围
+    # 例如 [1.16 1.16.1 1.16.2 1.16.3 1.16.4 1.16.5] => 1.16-1.16.5
+    # 跨二级版本号的版本不会被合并
+    # 例如 [1.16 1.16.1 1.16.2 1.17 1.18 1.18.1] => 1.18.1/1.18/1.17/1.16-1.16.2
+    # 整合版本
+    version_groups = {}
+    for v in sorted_versions:
+        parts = v.split('.')
+        if len(parts) >= 2:
+            major = '.'.join(parts[:2])
+            if major not in version_groups:
+                version_groups[major] = []
+            version_groups[major].append(v)
+        else:
+            if v not in version_groups:
+                version_groups[v] = []
+            version_groups[v].append(v)
+
+    merged_versions = []
+    # 处理每个主版本组
+    for major in sorted(version_groups.keys(), key=LooseVersion, reverse=True):
+        group = sorted(version_groups[major], key=LooseVersion)
+        if len(group) >= 3:
+            # 如果有3个或以上版本，合并它们
+            merged_versions.append(f"{group[0]}-{group[-1]}")
+        else:
+            # 否则，单独添加
+            merged_versions.extend(sorted(group, key=LooseVersion, reverse=True))
+
     content = "/".join(sorted_versions)
 
     drive.find_element(By.ID, "modfile-upload-mcver").send_keys(content)
@@ -294,23 +325,27 @@ def end_connection(reason: str):
     drive.quit()
     print("已关闭浏览器，原因：", reason)
 
-
-if check_connection():
-    # 检查待上传的文件夹是否存在
-    if os.path.exists(upload_folder):
-        print("已找到待上传的文件夹：", upload_folder)
-        # 上传文件
-        feedback = upload_mod()
-        if feedback[0]:
-            print("上传成功！")
-            config.write_config("Finished_upload", True)
-            end_connection("上传成功")
+config.load_config()
+if not config.Finished_upload:
+    if check_connection():
+        # 检查待上传的文件夹是否存在
+        if os.path.exists(upload_folder):
+            print("已找到待上传的文件夹：", upload_folder)
+            # 上传文件
+            feedback = upload_mod()
+            if feedback[0]:
+                print("上传成功！")
+                config.write_config("Finished_upload", True)
+                end_connection("上传成功")
+            else:
+                print("上传失败：", feedback[1])
+                end_connection(feedback[1])
         else:
-            print("上传失败：", feedback[1])
-            end_connection(feedback[1])
+            print("没有找到待上传的文件夹：", upload_folder)
+            config.write_config("Finished_upload", True)
+            end_connection("没有找到待上传的文件夹")
     else:
-        print("没有找到待上传的文件夹：", upload_folder)
-        config.write_config("Finished_upload", True)
-        end_connection("没有找到待上传的文件夹")
+        end_connection("无法连接至服务器")
 else:
-    end_connection("无法连接至服务器")
+    print("没有需要上传的文件")
+    end_connection("没有需要上传的文件")
