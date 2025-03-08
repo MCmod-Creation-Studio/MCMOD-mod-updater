@@ -69,6 +69,8 @@ if config.Zmail_enable:
 else:
     import Data_updater
 
+config = config.load_config()
+
 if config.Selenium_enable:
     if config.download_enable:
         if not config.Finished_upload:
