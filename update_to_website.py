@@ -54,8 +54,8 @@ if config.Cookies:
 # 检查是否能链接
 def check_connection():
     try:
-        drive.get(url)
         print("正在连接至MC百科文件管理后台...")
+        drive.get(url)
         if drive.find_elements(By.CLASS_NAME, "modfile-select-frame"):
             print("连接成功！")
             return True
@@ -148,6 +148,7 @@ def upload_mod() -> Tuple[bool, str]:
 
                         drive.find_element(By.XPATH, "//button[@id='modfile-upload-btn']").click()
                         while drive.find_elements(By.XPATH, "//button[contains(text(),'妥')]") is not []:
+                            time.sleep(0.1)
                             drive.find_element(By.XPATH, "//button[contains(text(),'妥')]").click()
                             break
                         time.sleep(1)
