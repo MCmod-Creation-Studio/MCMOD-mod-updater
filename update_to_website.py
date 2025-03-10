@@ -115,12 +115,12 @@ def upload_mod() -> Tuple[bool, str]:
                     if last_McmodID != McmodID:
                         last_McmodID = McmodID
                         drive.get(f"{url}/{McmodID}")
+                        uploaded_files_name = [uploaded_file.text for uploaded_file in drive.find_elements(By.CLASS_NAME, "file-name")]
                         # 上传文件
                     try:
-                        for uploaded_file_name in drive.find_elements(By.CLASS_NAME, "file-name"):
-                            if uploaded_file_name.text == filename:
-                                print("文件已存在，跳过上传")
-                                skip_mark = True
+                        if filename in uploaded_files_name:
+                            print("文件已存在，跳过上传")
+                            skip_mark = True
                         if skip_mark:
                             continue
                         print("正在自动化操作，请勿接触键盘")
@@ -209,6 +209,7 @@ def fill_mod_detail(info):
             # 否则，单独添加
             merged_versions.extend(sorted(group, key=LooseVersion, reverse=True))
 
+    sorted_versions.reverse()
     content = "/".join(sorted_versions)
 
     drive.find_element(By.ID, "modfile-upload-mcver").send_keys(content)
