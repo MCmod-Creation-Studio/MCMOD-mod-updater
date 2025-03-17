@@ -163,7 +163,15 @@ def requests_download(url, time, file_name):
                 print(f"下载失败：{url}，\n原因：{E}\n已达到最大重试次数，跳过此文件")
                 return False
 
-
+def check_oversize(url, time, file_name):
+    response = rq.get(url, stream=True, timeout=10)
+    response.raise_for_status()
+    total_size = int(response.headers.get('content-length', 0))
+    # 大于50MB的文件跳过下载
+    if total_size <= 52428800:
+        return False
+    else:
+        return True
 
 if __name__ == "__main__":
     k = rq.get(r'https://api.curseforge.com/v1/mods/{0}/files/{1}'.format(328085, 6271934),
