@@ -358,14 +358,13 @@ def get_available_files_path():
     for i in temp_comparison.values():
         available_files_path.append(i)
 
-    for path in listdir:
-        if path.endswith(".yaml"):
-            with open(os.path.join(upload_folder, path), 'r', encoding='utf-8') as file:
-                content = yaml.load(file)
-                # 已下载的模组则不下载
-                if content['fileName'] in available_files_path:
-                    continue
-                requests_download(content['downloadUrl'], config.LastModified, content['fileName'])
+    for path in available_files_path:
+        with open(os.path.join(upload_folder, path), 'r', encoding='utf-8') as file:
+            content = yaml.load(file)
+            # 已下载的模组则不下载
+            if content['fileName'] in available_files_path:
+                continue
+            requests_download(content['downloadUrl'], config.LastModified, content['fileName'])
 
 
 
