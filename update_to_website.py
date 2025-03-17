@@ -334,7 +334,7 @@ def end_connection(reason: str):
     drive.quit()
     print("已关闭浏览器，原因：", reason)
 
-def get_available_files_path():
+def get_available_files():
     listdir = os.listdir(upload_folder)
     available_files_path = []
     # 处理有相同ModID和gameVersions的情况，只保留最新版本
@@ -378,7 +378,7 @@ if not config.Finished_upload:
         if os.path.exists(upload_folder):
             print("已找到待上传的文件夹：", upload_folder)
             # 上传文件
-            feedback = upload_mod(get_available_files_path())
+            feedback = upload_mod(get_available_files())
             if feedback[0]:
                 print("上传成功！")
                 config.write_config("Finished_upload", True)
