@@ -11,7 +11,7 @@ from selenium.webdriver.common.by import By
 from typing import Tuple
 import config
 from distutils.version import LooseVersion
-from mod_downloader import requests_download
+from mod_downloader import requests_download, check_oversize
 
 yaml = config.yaml
 config = config.config
@@ -120,6 +120,10 @@ def upload_mod(available_files_path) -> Tuple[bool, str]:
                 try:
                     if filename in uploaded_files_name:
                         print("文件已存在，跳过上传")
+                        skip_mark = True
+
+                    if check_oversize(content['downloadUrl'], config.LastModified, filename):
+                        print("文件过大，跳过上传")
                         skip_mark = True
 
                     if skip_mark:
@@ -365,6 +369,8 @@ def get_available_files():
             # 已下载的模组则不下载
             if content['fileName'] in available_files_path:
                 available_files_path.remove(content['fileName'])
+
+
 
     return available_files_path
 
