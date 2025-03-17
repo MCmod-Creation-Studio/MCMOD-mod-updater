@@ -122,10 +122,6 @@ def upload_mod(available_files_path) -> Tuple[bool, str]:
                         print("文件已存在，跳过上传")
                         skip_mark = True
 
-                    if check_oversize(content['downloadUrl'], config.LastModified, filename):
-                        print("文件过大，跳过上传")
-                        skip_mark = True
-
                     if skip_mark:
                         continue
                     print("正在下载文件：", filename)
@@ -366,9 +362,16 @@ def get_available_files():
     for path in available_files_path:
         with open(os.path.join(upload_folder, path), 'r', encoding='utf-8') as file:
             content = yaml.load(file)
+
             # 已下载的模组则不下载
             if content['fileName'] in available_files_path:
                 available_files_path.remove(content['fileName'])
+
+            # 检查文件大小
+            if check_oversize(content['downloadUrl']):
+                available_files_path.remove(content['fileName'])
+                print(f"文件{content['fileName']}超过50MB，跳过上传")
+
 
 
 

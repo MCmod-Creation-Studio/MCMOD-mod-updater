@@ -123,10 +123,12 @@ def save_mod_metadata(time, file_name, mcmod_id, url, file_date, game_versions, 
     with open(yaml_file_path, 'w', encoding="UTF-8") as file:
         yaml.dump(content, file)
 
-    # 如果启用了Selenium，更新配置
+    # 如果启用了Selenium，更新配置， 否则直接下载文件
     if config.Selenium_enable:
         config.write_config("LastModified", time)
         config.write_config("Finished_upload", False)
+    else:
+        requests_download(url, time, file_name)
 
     return yaml_file_path
 
@@ -163,7 +165,7 @@ def requests_download(url, time, file_name):
                 print(f"下载失败：{url}，\n原因：{E}\n已达到最大重试次数，跳过此文件")
                 return False
 
-def check_oversize(url, time, file_name):
+def check_oversize(url):
     response = rq.get(url, stream=True, timeout=10)
     response.raise_for_status()
     total_size = int(response.headers.get('content-length', 0))
