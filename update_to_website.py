@@ -100,70 +100,97 @@ def upload_mod() -> Tuple[bool, str]:
     # 先打开上传页面
     # https://modfile-dl.mcmod.cn/admin/{McmodID}
     listdir = os.listdir(upload_folder)
-    listdir.reverse()
     last_McmodID = ""
+    available_files_path = []
+    # 处理有相同ModID和gameVersions的情况，只保留最新版本
+    temp_comparison = dict()
     for path in listdir:
-        # 打开txt文件
         if path.endswith(".yaml"):
-            try:
-                with open(os.path.join(upload_folder, path), 'r', encoding='utf-8') as file:
-                    content = yaml.load(file)
-                    filename = content['fileName']
-                    print("正在上传：", filename)
-                    skip_mark = False
-                    McmodID = content['McmodID']
-                    if last_McmodID != McmodID:
-                        last_McmodID = McmodID
-                        drive.get(f"{url}/{McmodID}")
-                        uploaded_files_name = [uploaded_file.text for uploaded_file in drive.find_elements(By.CLASS_NAME, "file-name")]
-                        # 上传文件
-                    try:
-                        if filename in uploaded_files_name:
-                            print("文件已存在，跳过上传")
+            with open(os.path.join(upload_folder, path), 'r', encoding='utf-8') as file:
+                content = yaml.load(file)
+                mod_id = content['McmodID']
+                game_versions = content['gameVersions']
+                comparison = str(mod_id).join(game_versions)
+                if comparison in temp_comparison:
+                    if LooseVersion(path) > LooseVersion(temp_comparison[comparison]):
+                        print(f"{temp_comparison[comparison]}有更新的版本{path}，将覆盖旧版本")
+                        temp_comparison[comparison] = path
+                    else:
+                        continue
+                else:
+                    temp_comparison[comparison] = path
+
+    for i in temp_comparison.values():
+        available_files_path.append(i)
+
+    for path in available_files_path:
+        try:
+            with open(os.path.join(upload_folder, path), 'r', encoding='utf-8') as file:
+                content = yaml.load(file)
+                filename = content['fileName']
+                print("正在上传：", filename)
+                skip_mark = False
+                McmodID = content['McmodID']
+
+                if last_McmodID != McmodID:
+                    last_McmodID = McmodID
+                    drive.get(f"{url}/{McmodID}")
+                    uploaded_files_name = [uploaded_file.text for uploaded_file in
+                                           drive.find_elements(By.CLASS_NAME, "file-name")]
+                    # 上传文件
+                try:
+                    if filename in uploaded_files_name:
+                        print("文件已存在，跳过上传")
+                        skip_mark = True
+
+                    if skip_mark:
+                        continue
+                    print("正在自动化操作，请勿接触键盘")
+                    drive.find_element(By.XPATH, "//button[contains(text(),'上传文件')]").click()
+                    time.sleep(0.8)
+                    drive.find_element(By.XPATH, "//label[@id='modfile-select-label']").click()
+                    time.sleep(0.8)
+                    to_type = os.path.abspath(os.path.join(upload_folder, filename))
+                    pyperclip.copy(to_type)
+                    pyautogui.hotkey('ctrl', 'v')
+                    time.sleep(0.8)
+                    pyautogui.typewrite("\n")
+                    time.sleep(0.5)
+                    fill_mod_detail(content)
+
+                    # 5秒检查时间，可手动关闭页面跳过本次上传
+                    Countdown = 5
+                    while Countdown < 0:
+                        if not drive.find_elements(By.CLASS_NAME, "modal fade show"):
+                            print("检测到取消按钮，跳过上传")
                             skip_mark = True
-                        if skip_mark:
-                            continue
-                        print("正在自动化操作，请勿接触键盘")
-                        drive.find_element(By.XPATH, "//button[contains(text(),'上传文件')]").click()
-                        drive.find_element(By.XPATH, "//label[@id='modfile-select-label']").click()
-                        time.sleep(0.8)
-                        to_type = os.path.abspath(os.path.join(upload_folder, filename))
-                        pyperclip.copy(to_type)
-                        pyautogui.hotkey('ctrl', 'v')
-                        time.sleep(0.5)
-                        pyautogui.typewrite("\n")
-                        time.sleep(0.5)
-                        fill_mod_detail(content)
-
-                        # 5秒检查时间，可手动关闭页面跳过本次上传
-                        Countdown = 5
-                        while Countdown < 0:
-                            if not drive.find_elements(By.CLASS_NAME, "modal fade show"):
-                                print("检测到取消按钮，跳过上传")
-                                skip_mark = True
-                            time.sleep(1)
-                            Countdown -= 1
-                        if skip_mark:
-                            continue
-
-                        drive.find_element(By.XPATH, "//button[@id='modfile-upload-btn']").click()
-                        while drive.find_elements(By.XPATH, "//button[contains(text(),'妥')]") is not []:
-                            time.sleep(0.1)
-                            drive.find_element(By.XPATH, "//button[contains(text(),'妥')]").click()
-                            break
                         time.sleep(1)
-                    except Exception as e:
-                        return False, f"上传文件错误：{e}，跳过该文件"
-            except Exception as e:
-                return False, f"打开文件错误：{e}，跳过该文件"
+                        Countdown -= 1
+                    if skip_mark:
+                        continue
+
+                    drive.find_element(By.XPATH, "//button[@id='modfile-upload-btn']").click()
+                    while drive.find_elements(By.XPATH, "//button[contains(text(),'妥')]") is not []:
+                        time.sleep(0.1)
+                        drive.find_element(By.XPATH, "//button[contains(text(),'妥')]").click()
+                        break
+                    time.sleep(1)
+                except Exception as e:
+                    print("上传文件错误：", e)
+                    print("跳过该文件")
+                    pass
+        except Exception as e:
+            return False, f"打开文件错误：{e}，跳过该文件，{filename}"
     return True, "全部文件上传成功"
 
+
 def is_valid_version(version_str):
-    available_version_special_word = ['w','Snapshot','.'] + [str(i) for i in range(10)]
+    available_version_special_word = ['w', 'Snapshot', '.'] + [str(i) for i in range(10)]
     for word in available_version_special_word:
         if word in version_str:
             return True
     return False
+
 
 def fill_mod_detail(info):
     platform_tick = False
@@ -209,8 +236,8 @@ def fill_mod_detail(info):
             # 否则，单独添加
             merged_versions.extend(sorted(group, key=LooseVersion, reverse=True))
 
-    sorted_versions.reverse()
-    content = "/".join(sorted_versions)
+    merged_versions.reverse()
+    content = "/".join(merged_versions)
 
     drive.find_element(By.ID, "modfile-upload-mcver").send_keys(content)
 
@@ -274,8 +301,9 @@ def fill_mod_detail(info):
 
     # 文件标签
     # Snapshot: 快照Beta: 测试版Dev: 开发版Lite: 精简版Client: 仅客户端Server: 仅服务端
-        # 如果所有版本都是快照版本 "w" 或 "Snapshot" 且 is_valid_version
-    if all([is_valid_version(version) for version in info['gameVersions']]) and all(["w" in version or "Snapshot" in version for version in info['gameVersions']]):
+    # 如果所有版本都是快照版本 "w" 或 "Snapshot" 且 is_valid_version
+    if all([is_valid_version(version) for version in info['gameVersions']]) and all(
+            ["w" in version or "Snapshot" in version for version in info['gameVersions']]):
         drive.find_element(By.XPATH, "//label[@for='class-data-tags-snapshot-upload']").click()
         tag_tick = True
         auto_tick_content += "Snapshot "
@@ -322,10 +350,10 @@ def fill_mod_detail(info):
             pass
 
 
-
 def end_connection(reason: str):
     drive.quit()
     print("已关闭浏览器，原因：", reason)
+
 
 config.load_config()
 if not config.Finished_upload:
