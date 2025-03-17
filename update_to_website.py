@@ -11,6 +11,7 @@ from selenium.webdriver.common.by import By
 from typing import Tuple
 import config
 from distutils.version import LooseVersion
+import mod_downloader
 
 yaml = config.yaml
 config = config.config
@@ -96,32 +97,11 @@ def login():
         return False
 
 
-def upload_mod() -> Tuple[bool, str]:
+def upload_mod(available_files_path) -> Tuple[bool, str]:
     # 先打开上传页面
     # https://modfile-dl.mcmod.cn/admin/{McmodID}
-    listdir = os.listdir(upload_folder)
     last_McmodID = ""
-    available_files_path = []
-    # 处理有相同ModID和gameVersions的情况，只保留最新版本
-    temp_comparison = dict()
-    for path in listdir:
-        if path.endswith(".yaml"):
-            with open(os.path.join(upload_folder, path), 'r', encoding='utf-8') as file:
-                content = yaml.load(file)
-                mod_id = content['McmodID']
-                game_versions = content['gameVersions']
-                comparison = str(mod_id).join(game_versions)
-                if comparison in temp_comparison:
-                    if LooseVersion(path) > LooseVersion(temp_comparison[comparison]):
-                        print(f"{temp_comparison[comparison]}有更新的版本{path}，将覆盖旧版本")
-                        temp_comparison[comparison] = path
-                    else:
-                        continue
-                else:
-                    temp_comparison[comparison] = path
 
-    for i in temp_comparison.values():
-        available_files_path.append(i)
 
     for path in available_files_path:
         try:
@@ -354,6 +334,37 @@ def end_connection(reason: str):
     drive.quit()
     print("已关闭浏览器，原因：", reason)
 
+def get_available_files_path():
+    listdir = os.listdir(upload_folder)
+    available_files_path = []
+    # 处理有相同ModID和gameVersions的情况，只保留最新版本
+    temp_comparison = dict()
+    for path in listdir:
+        if path.endswith(".yaml"):
+            with open(os.path.join(upload_folder, path), 'r', encoding='utf-8') as file:
+                content = yaml.load(file)
+                mod_id = content['McmodID']
+                game_versions = content['gameVersions']
+                comparison = str(mod_id).join(game_versions)
+                if comparison in temp_comparison:
+                    if LooseVersion(path) > LooseVersion(temp_comparison[comparison]):
+                        print(f"{temp_comparison[comparison]}有更新的版本{path}，将覆盖旧版本")
+                        temp_comparison[comparison] = path
+                    else:
+                        continue
+                else:
+                    temp_comparison[comparison] = path
+
+    for i in temp_comparison.values():
+        available_files_path.append(i)
+
+    for path in listdir:
+        with open(os.path.join(upload_folder, path), 'r', encoding='utf-8') as file:
+            content = yaml.load(file)
+            mod_downloader.requests_download(content['downloadUrl'], config.LastModified, content['fileName'])
+
+    return available_files_path
+
 
 config.load_config()
 if not config.Finished_upload:
@@ -362,7 +373,7 @@ if not config.Finished_upload:
         if os.path.exists(upload_folder):
             print("已找到待上传的文件夹：", upload_folder)
             # 上传文件
-            feedback = upload_mod()
+            feedback = upload_mod(get_available_files_path())
             if feedback[0]:
                 print("上传成功！")
                 config.write_config("Finished_upload", True)
