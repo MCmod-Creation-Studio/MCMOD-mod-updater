@@ -58,7 +58,7 @@ def requests_download(url, mcmod_id, time, file_name, file_date, game_versions, 
                     progress_bar.update(len(data))
                 progress_bar.close()
             # 将Mod信息写入文本文件
-            with open('./{0}/{1}/{2}.yaml'.format(DOWNLOAD_PATH, time, file_name.replace(".jar", "")), 'a', encoding="UTF-8") as file:
+            with open('./{0}/{1}/{2}.yaml'.format(DOWNLOAD_PATH, time, file_name.replace(".jar", "")), 'w', encoding="UTF-8") as file:
                 yaml.dump(content, file)
                 if config.Selenium_enable:
                     config.write_config("LastModified", time)
@@ -69,7 +69,7 @@ def requests_download(url, mcmod_id, time, file_name, file_date, game_versions, 
                 print(f"下载失败：{url}，\n原因：{E}\n（重试次数：{error_counter}/5）")
                 error_counter += 1
             else:
-                with open('./{0}/{1}/{2}.yaml'.format(DOWNLOAD_PATH, time, file_name.replace(".jar", "")), 'a', encoding="UTF-8") as file:
+                with open('./{0}/{1}/{2}.yaml'.format(DOWNLOAD_PATH, time, file_name.replace(".jar", "")), 'w', encoding="UTF-8") as file:
                     file.write("______！该文件下载失败！______\n" + f"原因：{E}" + str(content))
                 error_counter = 0
 
