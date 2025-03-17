@@ -19,61 +19,6 @@ headers = {
 }
 
 
-# def requests_download(url, mcmod_id, time, file_name, file_date, game_versions, release_type, game_type):
-#     """
-#     下载Mod文件并保存，同时创建包含Mod信息的文本文件。
-#     :param url: 文件下载链接
-#     :param mcmod_id: Mod的ID
-#     :param time: 保存目录的时间戳
-#     :param file_name: 文件名（不含路径）
-#     :param file_date: 文件日期
-#     :param game_versions: 支持的游戏版本
-#     :param release_type: 发布类型（发行版、测试版、alpha等）
-#     :param game_type: 游戏类型（Java、Bedrock等）
-#     """
-#     print("正在下载：" + url)
-#     makedirs('./{0}/{1}'.format(DOWNLOAD_PATH, time, file_name), exist_ok=True)  # 创建保存目录（如果不存在）
-#     # 构建包含Mod信息的字符串
-#
-#     content = {
-#         "fileName": file_name,
-#         "McmodID": mcmod_id,
-#         "downloadUrl": url,
-#         "fileDate": file_date,
-#         "gameVersions": game_versions,
-#         "fileState": release_type,
-#         "gameType": game_type
-#
-#     }
-#     error_counter = 0
-#     while error_counter <= TIMEOUT_RETRY:
-#         try:
-#             response = rq.get(url, stream=True, timeout=10)  # 开启流式下载
-#             response.raise_for_status()  # 如果请求失败，抛出异常
-#             total_size = int(response.headers.get('content-length', 0))  # 获取文件总大小
-#             with open('./{0}/{1}/{2}'.format(DOWNLOAD_PATH, time, file_name), 'wb') as file:
-#                 progress_bar = tqdm(total=total_size, unit='iB', unit_scale=True)
-#                 for data in response.iter_content(1024):
-#                     file.write(data)
-#                     progress_bar.update(len(data))
-#                 progress_bar.close()
-#             # 将Mod信息写入文本文件
-#             with open('./{0}/{1}/{2}.yaml'.format(DOWNLOAD_PATH, time, file_name.replace(".jar", "")), 'a', encoding="UTF-8") as file:
-#                 yaml.dump(content, file)
-#                 if config.Selenium_enable:
-#                     config.write_config("LastModified", time)
-#                     config.write_config("Finished_upload", False)
-#                 break
-#         except Exception as E:
-#             if error_counter <= TIMEOUT_RETRY:
-#                 print(f"下载失败：{url}，\n原因：{E}\n（重试次数：{error_counter}/5）")
-#                 error_counter += 1
-#             else:
-#                 with open('./{0}/{1}/{2}.yaml'.format(DOWNLOAD_PATH, time, file_name.replace(".jar", "")), 'a', encoding="UTF-8") as file:
-#                     file.write("______！该文件下载失败！______\n" + f"原因：{E}" + str(content))
-#                 error_counter = 0
-#
-#
 def download_mod_metadata(website, mcmod_id, time, project_id, file_id):
     """
     根据提供的网站类型和项目ID下载Mod文件。

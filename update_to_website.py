@@ -11,7 +11,7 @@ from selenium.webdriver.common.by import By
 from typing import Tuple
 import config
 from distutils.version import LooseVersion
-import mod_downloader
+from mod_downloader import requests_download
 
 yaml = config.yaml
 config = config.config
@@ -361,7 +361,7 @@ def get_available_files_path():
     for path in listdir:
         with open(os.path.join(upload_folder, path), 'r', encoding='utf-8') as file:
             content = yaml.load(file)
-            mod_downloader.requests_download(content['downloadUrl'], config.LastModified, content['fileName'])
+            requests_download(content['downloadUrl'], config.LastModified, content['fileName'])
 
     return available_files_path
 
