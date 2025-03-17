@@ -67,7 +67,7 @@ cleanup_mod_folders()
 if config.Zmail_enable:
     import ZmailOut
 else:
-    import Data_updater
+    import data_updater
 
 config.load_config()
 
