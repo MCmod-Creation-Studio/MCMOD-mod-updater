@@ -9,7 +9,7 @@ from rich.progress import Progress
 from urllib3 import disable_warnings as urllib3_disable_warnings
 import concurrent.futures
 # 导入自定义下载器模块
-from Mod_downloader import download_mod
+from mod_downloader import download_mod_metadata
 import time
 
 config = config.Config()
@@ -217,7 +217,6 @@ def latest_upload():
                             f"{num_id}: {result['mod_name']} || {result['latest_time']} | {Vexl('G', num_id)}")
                         unmatchedSum += 1
 
-                        # Download if needed
                         if download_enable and 'website' in result and result['website']:
                             # 寻找最近得有效list作为pastJson
                             if not (eval(Vexl("K", num_id)) == list):
@@ -232,8 +231,8 @@ def latest_upload():
                             if pastJson:
                                 fileID = list(set(result['file_ids']).difference(set(eval(pastJson))))
                                 if fileID:
-                                    download_mod(result['website'], Vexl("B", num_id),
-                                                 validify_processesTime, result['id'], fileID)
+                                    download_mod_metadata(result['website'], Vexl("B", num_id),
+                                                          validify_processesTime, result['id'], fileID)
                                     processes_download_mark = True
                     else:
                         matchedSum += 1

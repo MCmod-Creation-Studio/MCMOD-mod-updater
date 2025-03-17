@@ -2,7 +2,7 @@
 import config
 from datetime import datetime
 import zmail
-from Data_updater import DuplicatesList
+from data_updater import DuplicatesList
 
 
 def read_env():
