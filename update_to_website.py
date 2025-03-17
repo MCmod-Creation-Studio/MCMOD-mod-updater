@@ -102,7 +102,6 @@ def upload_mod(available_files_path) -> Tuple[bool, str]:
     # https://modfile-dl.mcmod.cn/admin/{McmodID}
     last_McmodID = ""
 
-
     for path in available_files_path:
         try:
             with open(os.path.join(upload_folder, path), 'r', encoding='utf-8') as file:
@@ -125,6 +124,8 @@ def upload_mod(available_files_path) -> Tuple[bool, str]:
 
                     if skip_mark:
                         continue
+                    print("正在下载文件：", filename)
+                    requests_download(content['downloadUrl'], config.LastModified, content['fileName'])
                     print("正在自动化操作，请勿接触键盘")
                     drive.find_element(By.XPATH, "//button[contains(text(),'上传文件')]").click()
                     time.sleep(0.8)
@@ -312,13 +313,12 @@ def fill_mod_detail(info):
         ask_handle_reason += "支持平台未被自动填写"
     if not function_tick:
         ask_handle_reason += "运作方式未被自动填写"
-    if not tag_tick:
-        ask_handle_reason += "文件标签未被自动填写"
-        print("请注意，该项目文件标签未被自动填写")
 
     if any([platform_tick, function_tick]):
         print("自动化操作完成！")
-        print("自动化操作内容：", auto_tick_content)
+        print("自动化操作内容：", str(content), auto_tick_content)
+        if not tag_tick:
+            print("文件标签未被自动填写")
     else:
         print("自动化操作失败：", ask_handle_reason)
         print("已自动化填写的内容：", auto_tick_content)
@@ -333,6 +333,7 @@ def fill_mod_detail(info):
 def end_connection(reason: str):
     drive.quit()
     print("已关闭浏览器，原因：", reason)
+
 
 def get_available_files():
     listdir = os.listdir(upload_folder)
@@ -363,10 +364,7 @@ def get_available_files():
             content = yaml.load(file)
             # 已下载的模组则不下载
             if content['fileName'] in available_files_path:
-                continue
-            requests_download(content['downloadUrl'], config.LastModified, content['fileName'])
-
-
+                available_files_path.remove(content['fileName'])
 
     return available_files_path
 
