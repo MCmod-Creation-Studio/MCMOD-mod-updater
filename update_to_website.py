@@ -124,6 +124,13 @@ def upload_mod(available_files_path) -> Tuple[bool, str]:
 
                     if skip_mark:
                         continue
+
+                    if check_oversize(content['downloadUrl']):
+                        skip_mark = True
+                        print(f"文件{content['fileName']}超过50MB，跳过上传")
+
+                    if skip_mark:
+                        continue
                     print("正在下载文件：", filename)
                     requests_download(content['downloadUrl'], config.LastModified, content['fileName'])
                     print("正在自动化操作，请勿接触键盘")
@@ -340,6 +347,7 @@ def get_available_files():
     available_files_path = []
     # 处理有相同ModID和gameVersions的情况，只保留最新版本
     temp_comparison = dict()
+
     for path in listdir:
         if path.endswith(".yaml"):
             with open(os.path.join(upload_folder, path), 'r', encoding='utf-8') as file:
@@ -360,18 +368,14 @@ def get_available_files():
         available_files_path.append(i)
 
     for path in available_files_path:
-        with open(os.path.join(upload_folder, path), 'r', encoding='utf-8') as file:
-            content = yaml.load(file)
-
-            # 已下载的模组则不下载
-            if content['fileName'] in available_files_path:
-                available_files_path.remove(content['fileName'])
-
-            # 检查文件大小
-            if check_oversize(content['downloadUrl']):
-                available_files_path.remove(content['fileName'])
-                print(f"文件{content['fileName']}超过50MB，跳过上传")
-
+        try:
+            with open(os.path.join(upload_folder, path), 'r', encoding='utf-8') as file:
+                content = yaml.load(file)
+                # 已下载的模组则不下载
+                if content['fileName'] in available_files_path:
+                    available_files_path.remove(content['fileName'])
+        except Exception as E:
+            print("筛选有效文件失败：\n" + str(E))
 
 
 
