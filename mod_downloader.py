@@ -1,6 +1,6 @@
 # 导入必要的模块，并检查CURSEFORGE_API_KEY环境变量是否已设置
 import config
-from os import makedirs
+from os import makedirs, path
 import requests as rq
 from tqdm import tqdm
 yaml = config.yaml
@@ -141,6 +141,12 @@ def requests_download(url, time, file_name):
     :param file_name: 文件名（不含路径）
     :return: 是否成功下载
     """
+
+    #检测文件是否存在
+    if path.exists('./{0}/{1}/{2}'.format(DOWNLOAD_PATH, time, file_name)):
+        print("文件已存在：" + file_name)
+        return True
+
     print("正在下载：" + url)
     makedirs('./{0}/{1}'.format(DOWNLOAD_PATH, time), exist_ok=True)  # 创建保存目录（如果不存在）
 

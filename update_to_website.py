@@ -156,10 +156,10 @@ def upload_mod(available_files_path) -> Tuple[bool, str]:
                         Countdown -= 1
                     if skip_mark:
                         continue
-
+                    time.sleep(0.5)
                     drive.find_element(By.XPATH, "//button[@id='modfile-upload-btn']").click()
                     while drive.find_elements(By.XPATH, "//button[contains(text(),'妥')]") is not []:
-                        time.sleep(0.1)
+                        time.sleep(0.5)
                         drive.find_element(By.XPATH, "//button[contains(text(),'妥')]").click()
                         break
                     time.sleep(1)
