@@ -35,7 +35,7 @@ max_rowFIX = unmatchedSum = matchedSum = rq.session().keep_alive = False
 DuplicatesList = []
 processesTime = datetime.now()
 validify_processesTime = str(processesTime).replace(" ", "+").replace(":", "-")
-processes_download_mark = False
+
 
 # 检查环境变量是否设置了DATABASE_PATH
 if not DATABASE_PATH:
@@ -192,7 +192,7 @@ def process_mod(num_id):
 
 # 处理最新上传的模组信息
 def latest_upload():
-    global DuplicatesList, matchedSum, unmatchedSum, processes_download_mark
+    global DuplicatesList, matchedSum, unmatchedSum
 
     with Progress() as progress:
         task = progress.add_task("[red]正在初始化......", total=max_rowFIX)
@@ -224,7 +224,7 @@ def latest_upload():
                             elif not (eval(Vexl("L", num_id)) == list):
                                 pastJson = Vexl("L", num_id)
                             elif not (eval(Vexl("J", num_id)) == list):
-                                pastJson = Vexl("M", num_id)
+                                pastJson = Vexl("J", num_id)
                             else:
                                 pastJson = None
 
@@ -233,7 +233,6 @@ def latest_upload():
                                 if fileID:
                                     download_mod_metadata(result['website'], Vexl("B", num_id),
                                                           validify_processesTime, result['id'], fileID)
-                                    processes_download_mark = True
                     else:
                         matchedSum += 1
 
