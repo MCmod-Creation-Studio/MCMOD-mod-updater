@@ -6,3 +6,4 @@ tqdm~=4.67.1
 PyAutoGUI~=0.9.54
 pyperclip~=1.9.0
 selenium~=4.27.1
+PyTaskbarProgress~=0.0.8
