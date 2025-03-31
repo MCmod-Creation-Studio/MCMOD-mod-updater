@@ -128,12 +128,11 @@ def get_modrinth_api_json(mr_project_id):
 def process_mod(num_id):
     mod_name = Vexl("C", num_id)
     latest_time = ""
-    file_ids = ""
+    file_ids = []
 
     try:
         curseforge_id = Vexl("D", num_id)
         modrinth_id = Vexl("E", num_id)
-
         if curseforge_id is not None:
             website = "Curseforge"
             if not str(curseforge_id).count("/"):
@@ -144,7 +143,7 @@ def process_mod(num_id):
                 latest_time = ""
                 for m in str(curseforge_id).split("/"):
                     json_data = get_cfwidget_api_json(m)['files']
-                    file_ids = [i["id"] for i in json_data]
+                    file_ids += [i["id"] for i in json_data]
                     latest_time += str(dict(json_data[0])['uploaded_at']) + "  "
 
         elif modrinth_id is not None:
