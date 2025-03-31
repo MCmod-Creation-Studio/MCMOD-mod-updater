@@ -176,8 +176,8 @@ def check_oversize(url):
     response = rq.get(url, stream=True, timeout=10)
     response.raise_for_status()
     total_size = int(response.headers.get('content-length', 0))
-    # 大于50MB的文件跳过下载
-    if total_size <= 52428800:
+    # 大于75MB的文件跳过下载
+    if total_size <= 78643200:
         return False
     else:
         return True

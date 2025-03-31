@@ -127,7 +127,7 @@ def upload_mod(available_files_path) -> Tuple[bool, str]:
 
                     if check_oversize(content['downloadUrl']):
                         skip_mark = True
-                        print(f"文件{content['fileName']}超过50MB，跳过上传")
+                        print(f"文件{content['fileName']}超过75MB，跳过上传")
 
                     if skip_mark:
                         continue
@@ -180,6 +180,12 @@ def is_valid_version(version_str):
     return False
 
 
+def check_consistent_version(version_list):
+    for version in version_list:
+        if not is_valid_version(version):
+            return False
+    return True
+
 def fill_mod_detail(info):
     platform_tick = False
     function_tick = False
@@ -224,7 +230,6 @@ def fill_mod_detail(info):
             # 否则，单独添加
             merged_versions.extend(sorted(group, key=LooseVersion, reverse=True))
 
-    merged_versions.reverse()
     content = "/".join(merged_versions)
 
     drive.find_element(By.ID, "modfile-upload-mcver").send_keys(content)
