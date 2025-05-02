@@ -43,7 +43,7 @@ else:
 if drive is None:
     raise ValueError("Unable to find the browser driver.")
 
-drive.implicitly_wait(3)
+drive.implicitly_wait(6)
 if config.Cookies:
     drive.get(url)
     drive.delete_all_cookies()
@@ -51,6 +51,7 @@ if config.Cookies:
         drive.add_cookie(cookie)
     drive.refresh()
 
+sec_mods_upload = []
 
 # 检查是否能链接
 def check_connection():
@@ -98,6 +99,8 @@ def login():
 
 
 def upload_mod(available_files_path) -> Tuple[bool, str]:
+    global sec_mods_upload
+    sec_mods_upload = []
     # 先打开上传页面
     # https://modfile-dl.mcmod.cn/admin/{McmodID}
     last_McmodID = ""
@@ -137,7 +140,7 @@ def upload_mod(available_files_path) -> Tuple[bool, str]:
                     drive.find_element(By.XPATH, "//button[contains(text(),'上传文件')]").click()
                     time.sleep(0.8)
                     drive.find_element(By.XPATH, "//label[@id='modfile-select-label']").click()
-                    time.sleep(0.8)
+                    time.sleep(1)
                     to_type = os.path.abspath(os.path.join(upload_folder, filename))
                     pyperclip.copy(to_type)
                     pyautogui.hotkey('ctrl', 'v')
@@ -145,31 +148,42 @@ def upload_mod(available_files_path) -> Tuple[bool, str]:
                     pyautogui.typewrite("\n")
                     time.sleep(0.5)
                     fill_mod_detail(content)
-
-                    # 5秒检查时间，可手动关闭页面跳过本次上传
-                    Countdown = 5
-                    while Countdown < 0:
-                        if not drive.find_elements(By.CLASS_NAME, "modal fade show"):
-                            print("检测到取消按钮，跳过上传")
-                            skip_mark = True
-                        time.sleep(1)
-                        Countdown -= 1
                     if skip_mark:
                         continue
                     time.sleep(0.5)
                     drive.find_element(By.XPATH, "//button[@id='modfile-upload-btn']").click()
-                    while drive.find_elements(By.XPATH, "//button[contains(text(),'妥')]") is not []:
-                        time.sleep(0.5)
-                        drive.find_element(By.XPATH, "//button[contains(text(),'妥')]").click()
-                        break
-                    time.sleep(1)
+                    # 判断上传成功与否
+                    tuo_button = drive.find_elements(By.XPATH, "//button[contains(text(),'妥')]")
+                    if len(tuo_button) > 0:
+                        # 上传成功
+                        print("上传成功！")
+                        # 点击妥
+                        tuo_button[0].click()
+                    else:
+                        # 上传失败
+                        print("上传失败，存入稍后处理列表")
+                        sec_mods_upload.append(path)
+                        # 按ESC退出文件选择界面
+                        pyautogui.press('esc')
+                        # 刷新页面
+                        drive.refresh()
                 except Exception as e:
                     print("上传文件错误：", e)
-                    print("跳过该文件")
+                    print("上传失败，存入稍后处理列表")
+                    sec_mods_upload.append(path)
+                    drive.refresh()
                     pass
         except Exception as e:
             return False, f"打开文件错误：{e}，跳过该文件，{filename}"
-    return True, "全部文件上传成功"
+    if not sec_mods_upload:
+        return True, "全部文件上传成功"
+    else:
+        # 处理稍后上传的文件
+        print("以下文件上传失败，现在进行处理：")
+        for filename in sec_mods_upload:
+            print(filename)
+        # 重新上传
+        upload_mod(sec_mods_upload.copy())
 
 
 def is_valid_version(version_str):
@@ -361,7 +375,7 @@ def get_available_files():
                 game_versions = content['gameVersions']
                 comparison = str(mod_id).join(game_versions)
                 if comparison in temp_comparison:
-                    if LooseVersion(path) > LooseVersion(temp_comparison[comparison]):
+                    if str(LooseVersion(path)) > str(LooseVersion(temp_comparison[comparison])):
                         print(f"{temp_comparison[comparison]}有更新的版本{path}，将覆盖旧版本")
                         temp_comparison[comparison] = path
                     else:
@@ -382,32 +396,26 @@ def get_available_files():
         except Exception as E:
             print("筛选有效文件失败：\n" + str(E))
 
-
-
     return available_files_path
 
 
 config.load_config()
-if not config.Finished_upload:
-    if check_connection():
-        # 检查待上传的文件夹是否存在
-        if os.path.exists(upload_folder):
-            print("已找到待上传的文件夹：", upload_folder)
-            # 上传文件
-            feedback = upload_mod(get_available_files())
-            if feedback[0]:
-                print("上传成功！")
-                config.write_config("Finished_upload", True)
-                end_connection("上传成功")
-            else:
-                print("上传失败：", feedback[1])
-                end_connection(feedback[1])
-        else:
-            print("没有找到待上传的文件夹：", upload_folder)
+if check_connection():
+    # 检查待上传的文件夹是否存在
+    if os.path.exists(upload_folder):
+        print("已找到待上传的文件夹：", upload_folder)
+        # 上传文件
+        feedback = upload_mod(get_available_files())
+        if feedback[0]:
+            print("上传成功！")
             config.write_config("Finished_upload", True)
-            end_connection("没有找到待上传的文件夹")
+            end_connection("上传成功")
+        else:
+            print("上传失败：", feedback[1])
+            end_connection(feedback[1])
     else:
-        end_connection("无法连接至服务器")
+        print("没有找到待上传的文件夹：", upload_folder)
+        config.write_config("Finished_upload", True)
+        end_connection("没有找到待上传的文件夹")
 else:
-    print("没有需要上传的文件")
-    end_connection("没有需要上传的文件")
+    end_connection("无法连接至服务器")
