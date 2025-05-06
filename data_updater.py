@@ -12,6 +12,8 @@ import concurrent.futures
 from mod_downloader import download_mod_metadata
 import time
 
+
+
 config = config.Config()
 DATABASE_PATH = config.DATABASE_PATH
 download_enable = config.download_enable
@@ -22,7 +24,16 @@ adapter = rq.adapters.HTTPAdapter(pool_connections=POOL_SIZE, pool_maxsize=POOL_
 session.mount('https://', adapter)
 session.mount('http://', adapter)
 
+CURSEFORGE_API_KEY = config.CURSEFORGE_API_KEY
+if not CURSEFORGE_API_KEY:
+    raise Exception('CURSEFORGE_API_KEY environment variable not set.')
+# 设置请求头，使用CURSEFORGE_API_KEY环境变量
 headers = config.headers
+
+if 'x-api-key' not in headers.keys():
+    headers['x-api-key'] = CURSEFORGE_API_KEY
+
+
 
 # 忽略urllib3的警告
 urllib3_disable_warnings()
@@ -93,7 +104,7 @@ def get_cfwidget_api_json(cf_project_id):
 
     while retry_count < max_retries:
         try:
-            return session.get(f'https://api.cfwidget.com/{cf_project_id}',
+            return session.get(f'https://api.curseforge.com/v1/mods/{cf_project_id}/files',
                                headers=headers, params={'param': '1'}, verify=False).json()
         except Exception as e:
             retry_count += 1
@@ -102,7 +113,7 @@ def get_cfwidget_api_json(cf_project_id):
                 return {"files": []}
             else:
                 wait_time = 2 ** retry_count  # Exponential backoff
-                print(f"Attempt {retry_count} failed for {cf_project_id}, retrying in {wait_time} seconds...")
+                print(f"Attempt {retry_count} failed for {cf_project_id} because {e}, retrying in {wait_time} seconds...")
                 time.sleep(wait_time)
 
 
@@ -115,13 +126,15 @@ def get_modrinth_api_json(mr_project_id):
             return session.get(f'https://api.modrinth.com/v2/project/{mr_project_id}',
                                params={'param': '1'}, headers=headers, verify=False).json()
         except Exception as e:
+            if "Expecting value: line 1 column 1 (char 0)" in str(e):
+                return {"versions": [], "updated": "Error"}
             retry_count += 1
             if retry_count >= max_retries:
                 print(f"Error getting Modrinth data for {mr_project_id} after {max_retries} attempts: {e}")
                 return {"versions": [], "updated": "Error"}
             else:
                 wait_time = 2 ** retry_count  # Exponential backoff
-                print(f"Attempt {retry_count} failed for {mr_project_id}, retrying in {wait_time} seconds...")
+                print(f"Attempt {retry_count} failed for {mr_project_id} because {e}, retrying in {wait_time} seconds...")
                 time.sleep(wait_time)
 
 
@@ -136,29 +149,37 @@ def process_mod(num_id):
         if curseforge_id is not None:
             website = "Curseforge"
             if not str(curseforge_id).count("/"):
-                json_data = get_cfwidget_api_json(curseforge_id)['files']
-                file_ids = [i["id"] for i in json_data]
-                latest_time = str(dict(json_data[0])['uploaded_at'])
+                json_data = get_cfwidget_api_json(curseforge_id)["data"]
+                if json_data:
+                    file_ids = [i["id"] for i in json_data]
+                    latest_time = str(dict(json_data[0])['fileDate'])
             else:
                 latest_time = ""
                 for m in str(curseforge_id).split("/"):
-                    json_data = get_cfwidget_api_json(m)['files']
-                    file_ids += [i["id"] for i in json_data]
-                    latest_time += str(dict(json_data[0])['uploaded_at']) + "  "
+                    json_data = get_cfwidget_api_json(m)["data"]
+                    if json_data:
+                        file_ids += [i["id"] for i in json_data]
+                        latest_time += str(dict(json_data[0])['fileDate']) + "  "
+                    else:
+                        raise ValueError("获取Curseforge数据为空")
 
         elif modrinth_id is not None:
             website = "Modrinth"
             if not str(modrinth_id).count("/"):
                 json_data = get_modrinth_api_json(modrinth_id)
-                file_ids = json_data["versions"]
-                latest_time = str(json_data['updated'])
+                if json_data:
+                    file_ids = json_data["versions"]
+                    latest_time = str(json_data['updated'])
             else:
                 latest_time = ""
                 file_ids = []
                 for m in str(modrinth_id).split("/"):
                     json_data = get_modrinth_api_json(m)
-                    file_ids += json_data["versions"]
-                    latest_time += str(json_data['updated']) + "  "
+                    if json_data:
+                        file_ids += json_data["versions"]
+                        latest_time += str(json_data['updated']) + "  "
+                    else:
+                        raise ValueError("获取Modrinth数据为空")
         else:
             latest_time = "读取失败"
             website = None
@@ -179,7 +200,7 @@ def process_mod(num_id):
         }
 
     except Exception as err:
-        print(f"{num_id - 1} 出现错误:{err}，跳过该项")
+        print(f"{num_id - 1} {mod_name} 出现错误:{err}，跳过该项")
         return {
             "num_id": num_id,
             "mod_name": mod_name,
@@ -201,7 +222,6 @@ def latest_upload():
             # Submit all tasks to the executor
             future_to_mod = {executor.submit(process_mod, num_id): num_id
                              for num_id in range(2, max_rowFIX + 2)}
-
             # Process results as they complete
             for future in concurrent.futures.as_completed(future_to_mod):
                 num_id = future_to_mod[future]
