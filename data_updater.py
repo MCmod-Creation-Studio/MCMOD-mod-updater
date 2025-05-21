@@ -12,8 +12,6 @@ import concurrent.futures
 from mod_downloader import download_mod_metadata
 import time
 
-
-
 config = config.Config()
 DATABASE_PATH = config.DATABASE_PATH
 download_enable = config.download_enable
@@ -152,9 +150,10 @@ def process_mod(num_id):
                 json_data = get_cfwidget_api_json(curseforge_id)["data"]
                 if json_data:
                     file_ids = [i["id"] for i in json_data]
-                    latest_time = str(dict(json_data[0])['fileDate'])
+                    latest_time = str(json_data[0]['fileDate'])
+                else:
+                    raise ValueError("获取Curseforge数据为空")
             else:
-                latest_time = ""
                 for m in str(curseforge_id).split("/"):
                     json_data = get_cfwidget_api_json(m)["data"]
                     if json_data:
@@ -170,9 +169,9 @@ def process_mod(num_id):
                 if json_data:
                     file_ids = json_data["versions"]
                     latest_time = str(json_data['updated'])
+                else:
+                    raise ValueError("获取Modrinth数据为空")
             else:
-                latest_time = ""
-                file_ids = []
                 for m in str(modrinth_id).split("/"):
                     json_data = get_modrinth_api_json(m)
                     if json_data:
