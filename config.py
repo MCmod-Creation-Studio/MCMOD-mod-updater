@@ -30,6 +30,11 @@ DATABASE_PATH: ./Database.xlsx
 MAX_DOWNLOAD_CACHE_FOLDERS: 5
 MAX_DOWNLOAD_CACHE_AGE_DAYS: 30
 
+# === Blacklist configuration/黑名单配置 ===
+# Mods that fail to be read four times will be added to the blacklist
+# 累计四次读取失败的模组将会被添加到黑名单
+blacklist_enabled: False
+
 # === Download setting/下载设置 ===
 # If you want to download the mod files, set DOWNLOAD_ON to True
 # 如果你想该程序下载Mod文件，请将DOWNLOAD_ON设置为True
@@ -80,10 +85,6 @@ LastModified:
 Finished_upload: True
 Cookies:
 
-# === Blacklist configuration/黑名单配置 ===
-# Mods that fail to be read four times will be added to the blacklist
-# 累计四次读取失败的模组将会被添加到黑名单
-blacklist_enabled: False
 blacklist: 
     -
 
