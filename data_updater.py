@@ -27,6 +27,7 @@ urllib3_disable_warnings()
 # Define fill colors
 green_fill = PatternFill(patternType='solid', fgColor='90EE90')  # Light green
 red_fill = PatternFill(patternType='solid', fgColor='D94600')  # Red
+blue_fill = PatternFill(patternType='solid', fgColor='A0C4FF')  # Light blue
 
 # Initialize global variables
 max_rowFIX = unmatchedSum = matchedSum = 0
@@ -91,8 +92,12 @@ async def get_cfwidget_api_json_async(cf_project_id, session):
     while retry_count < max_retries:
         try:
             async with session.get(f'https://api.cfwidget.com/{cf_project_id}',
-                                   headers=headers, ssl=False, timeout=8) as response:
+                                   headers=headers, ssl=False, timeout= 420) as response:
                 return await response.json()
+        except aiohttp.ClientResponseError as e:
+            # Handle specific HTTP errors
+            if e.status == 404:
+                return {"files": []}
         except Exception as e:
             retry_count += 1
             if retry_count >= max_retries:
@@ -112,8 +117,11 @@ async def get_modrinth_api_json_async(mr_project_id, session):
     while retry_count < max_retries:
         try:
             async with session.get(f'https://api.modrinth.com/v2/project/{mr_project_id}',
-                                   headers=headers, ssl=False, timeout=8) as response:
+                                   headers=headers, ssl=False, timeout= 420) as response:
                 return await response.json()
+        except aiohttp.ClientResponseError as e:
+            if e.status == 404:
+                return {"files": [], "error": "不存在"}
         except Exception as e:
             if "Expecting value: line 1 column 1 (char 0)" in str(e):
                 return {"versions": [], "updated": "不存在"}
@@ -126,6 +134,19 @@ async def get_modrinth_api_json_async(mr_project_id, session):
                 print(
                     f"Attempt {retry_count} failed for {mr_project_id} because {e}, retrying in {wait_time} seconds...")
                 await asyncio.sleep(wait_time)
+
+
+def add_unreachable_mod_to_blacklist(row: int):
+    """Check if the mod name is in the blacklist."""
+    # 如果F、G、H列均为“读取失败”，则列入黑名单
+    if Vexl("F", row) == "读取失败" and Vexl("G", row) == "读取失败" and Vexl("H", row) == "读取失败":
+        mod_name = Vexl("C", row)
+        if mod_name not in config.blacklist:
+            config.blacklist.append(mod_name)
+            print(f"检测到多次读取{mod_name}失败，其将列入检测黑名单")
+            config.write_config("blacklist", config.blacklist)
+            # 给涂上蓝色
+            exl[f"F{row}"].fill = blue_fill
 
 
 async def process_mod_async(num_id, session, progress, task):
@@ -176,6 +197,9 @@ async def process_mod_async(num_id, session, progress, task):
                         raise ValueError("获取Modrinth数据为空")
         else:
             latest_time = "读取失败"
+            if config.blacklist_enabled:
+                add_unreachable_mod_to_blacklist(num_id)
+
             website = None
 
         # Update time and check for duplicates
@@ -232,7 +256,8 @@ async def latest_upload_async():
             # Create a list of tasks
             tasks = []
             for num_id in range(2, max_rowFIX + 2):
-                tasks.append(process_mod_async(num_id, session, progress, task))
+                if config.blacklist_enabled and Vexl("C", num_id) in config.blacklist:
+                    tasks.append(process_mod_async(num_id, session, progress, task))
 
             # Execute all tasks concurrently with gather
             results = await asyncio.gather(*tasks, return_exceptions=True)
@@ -244,7 +269,7 @@ async def latest_upload_async():
                     continue
 
                 try:
-                    if not result["matched"]:
+                    if not result["matched"] and result['latest_time'] != "读取过程出现错误":
                         DuplicatesList.append(
                             f"{result['num_id']}: {result['mod_name']} || {result['latest_time']} | {Vexl('G', result['num_id'])}")
                         unmatchedSum += 1
@@ -279,7 +304,6 @@ async def latest_upload_async():
                     else:
                         matchedSum += 1
 
-                    print(result['num_id'] - 1, result['mod_name'], result['latest_time'])
                 except Exception as e:
                     print(f"Error processing result: {e}")
 
@@ -292,14 +316,24 @@ async def main():
     time_update("Latest", 1, processesTime)
     time_update("Json", 1, processesTime)
 
+    # Report blacklist status
+    if config.blacklist_enabled:
+        if isinstance(config.blacklist, list):
+            blacklisted_count = len(config.blacklist)
+        else:
+            config.blacklist = list()
+            blacklisted_count = 0
+        if blacklisted_count > 0:
+            print(f"当前有 {blacklisted_count} 个模组在黑名单中，这些模组将被跳过处理")
+
     # Start processing latest uploaded mod information
     await latest_upload_async()
 
     # Print summary information
-    print(f"匹配：{matchedSum}，不匹配{unmatchedSum}")
+    print(f"匹配：{matchedSum}，不匹配：{unmatchedSum}")
     print(datetime.now(), "完成遍历")
     if DuplicatesList:
-        print(f"发现已更新的模组！：\n {DuplicatesList}")
+        print(f"发现已更新的模组：\n {DuplicatesList}")
     else:
         print("没有发现已更新的模组")
 

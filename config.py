@@ -80,6 +80,13 @@ LastModified:
 Finished_upload: True
 Cookies:
 
+# === Blacklist configuration/黑名单配置 ===
+# Mods that fail to be read four times will be added to the blacklist
+# 累计四次读取失败的模组将会被添加到黑名单
+blacklist_enabled: False
+blacklist: 
+    -
+
 """
         with open(self.config_file, 'w', encoding='utf-8') as file:
             file.write(default_config)
@@ -127,6 +134,9 @@ Cookies:
             self.Finished_upload = config.get('Finished_upload', True)
             self.Cookies = config.get('Cookies', None)
 
+            self.blacklist_enabled = config.get('blacklist_enabled', False)
+            self.blacklist = config.get('blacklist', list())
+
             # 检查是否为空
             if not self.CURSEFORGE_API_KEY:
                 raise ValueError("CURSEFORGE_API_KEY is not set.")
@@ -159,6 +169,8 @@ Cookies:
             config = yaml.load(file)
         if key in config:
             config[key] = value
+        else:
+            raise KeyError(f"Key '{key}' not found in configuration file.")
         with open(self.config_file, 'w', encoding='utf-8') as file:
             yaml.dump(config, file)
 
