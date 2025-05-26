@@ -123,7 +123,7 @@ class ModManagerApp:
 
     async def run(self):
         """Main application entry point"""
-        self.logger(f"=== 模组管理器启动 - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ===")
+        self.logger(f"=== MC百科文件上传懒人助手 - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} ===")
 
         try:
             # Step 1: Clean up old mod folders

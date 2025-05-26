@@ -256,7 +256,7 @@ async def latest_upload_async():
             # Create a list of tasks
             tasks = []
             for num_id in range(2, max_rowFIX + 2):
-                if config.blacklist_enabled and Vexl("C", num_id) in config.blacklist:
+                if config.blacklist_enabled and Vexl("C", num_id) not in config.blacklist:
                     tasks.append(process_mod_async(num_id, session, progress, task))
 
             # Execute all tasks concurrently with gather
@@ -334,6 +334,8 @@ async def main():
     print(datetime.now(), "完成遍历")
     if DuplicatesList:
         print(f"发现已更新的模组：\n {DuplicatesList}")
+        config.write_config("LastModified", str(datetime.now()))
+        config.write_config("Finished_upload", False)
     else:
         print("没有发现已更新的模组")
 
