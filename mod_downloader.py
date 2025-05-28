@@ -17,7 +17,7 @@ cf_headers = headers
 cf_headers['x-api-key'] = CURSEFORGE_API_KEY
 
 
-def courseforge_mod_info_picker(json):
+def curseforge_mod_info_picker(json):
     # 因为curseforge api没有判断数据包的功能，于是手动判断是否为数据包，但不一定准确
     if json["fileName"].endswith(".zip"):
         for file in json["modules"]:
@@ -78,7 +78,7 @@ def download_mod_metadata(website, mcmod_id, time, signal_file_json):
         # 根据网站类型执行不同的API请求和数据处理
         if website == "Curseforge":
             # 请求Curseforge API获取文件信息
-            result = courseforge_mod_info_picker(signal_file_json)
+            result = curseforge_mod_info_picker(signal_file_json)
         elif website == "Modrinth":
             # 请求Modrinth API获取文件信息
             result = modrinth_mod_info_picker(signal_file_json)
