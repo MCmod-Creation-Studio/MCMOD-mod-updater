@@ -8,19 +8,23 @@ from openpyxl.styles import PatternFill
 from rich.progress import Progress
 from urllib3 import disable_warnings as urllib3_disable_warnings
 import sys
+
 if sys.platform == 'win32':
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 # Import custom downloader module
 from mod_downloader import download_mod_metadata
-import time
 
 config = config.Config()
 DATABASE_PATH = config.DATABASE_PATH
 download_enable = config.download_enable
 POOL_SIZE = config.POOL_SIZE
-
+CURSEFORGE_API_KEY = config.CURSEFORGE_API_KEY
+if not CURSEFORGE_API_KEY:
+    raise Exception('CURSEFORGE_API_KEY environment variable not set.')
 # Set request headers
 headers = config.headers
+cf_headers = headers
+cf_headers['x-api-key'] = CURSEFORGE_API_KEY
 
 # Ignore urllib3 warnings
 urllib3_disable_warnings()
@@ -68,8 +72,8 @@ def time_update(type: str, row, time):
 
 
 # Check for duplicates
-def check_duplicates(num_id):
-    if Vexl("F", num_id) != Vexl("G", num_id):
+def check_duplicates(num_id, latest_time):
+    if latest_time != Vexl("F", num_id):
         exl[f"F{num_id}"].fill = red_fill
         return False
     else:
@@ -88,21 +92,20 @@ max_rowFIX -= 2
 async def get_cfwidget_api_json_async(cf_project_id, session):
     retry_count = 0
     max_retries = config.TIMEOUT_RETRY
-
     while retry_count < max_retries:
         try:
-            async with session.get(f'https://api.cfwidget.com/{cf_project_id}',
-                                   headers=headers, ssl=False, timeout= 420) as response:
+            async with session.get(f'https://api.curseforge.com/v1/mods/{cf_project_id}/files',
+                                   headers=cf_headers, ssl=False, timeout=420) as response:
                 return await response.json()
         except aiohttp.ClientResponseError as e:
             # Handle specific HTTP errors
             if e.status == 404:
-                return {"files": []}
+                return {'data': []}
         except Exception as e:
             retry_count += 1
             if retry_count >= max_retries:
                 print(f"Error getting Curseforge data for {cf_project_id} after {max_retries} attempts: {e}")
-                return {"files": []}
+                return {'data': []}
             else:
                 wait_time = 2 ** retry_count  # Exponential backoff
                 print(f"Attempt {retry_count} failed for {cf_project_id}, retrying in {wait_time} seconds...")
@@ -116,19 +119,21 @@ async def get_modrinth_api_json_async(mr_project_id, session):
 
     while retry_count < max_retries:
         try:
-            async with session.get(f'https://api.modrinth.com/v2/project/{mr_project_id}',
-                                   headers=headers, ssl=False, timeout= 420) as response:
-                return await response.json()
+            async with session.get(f'https://api.modrinth.com/v2/project/{mr_project_id}/version',
+                                   headers=headers, ssl=False, timeout=420) as response:
+
+                return_json = await response.json()
+                return {"versions": return_json}
         except aiohttp.ClientResponseError as e:
             if e.status == 404:
-                return {"files": [], "error": "不存在"}
+                return {"versions": []}
         except Exception as e:
             if "Expecting value: line 1 column 1 (char 0)" in str(e):
-                return {"versions": [], "updated": "不存在"}
+                return {"versions": []}
             retry_count += 1
             if retry_count >= max_retries:
                 print(f"Error getting Modrinth data for {mr_project_id} after {max_retries} attempts: {e}")
-                return {"versions": [], "updated": ""}
+                return {"versions": []}
             else:
                 wait_time = 2 ** retry_count  # Exponential backoff
                 print(
@@ -136,7 +141,7 @@ async def get_modrinth_api_json_async(mr_project_id, session):
                 await asyncio.sleep(wait_time)
 
 
-def add_unreachable_mod_to_blacklist(row: int):
+async def add_unreachable_mod_to_blacklist(row: int):
     """Check if the mod name is in the blacklist."""
     # 如果F、G、H列均为“读取失败”，则列入黑名单
     if Vexl("F", row) == "读取失败" and Vexl("G", row) == "读取失败" and Vexl("H", row) == "读取失败":
@@ -152,7 +157,7 @@ def add_unreachable_mod_to_blacklist(row: int):
 async def process_mod_async(num_id, session, progress, task):
     mod_name = Vexl("C", num_id)
     latest_time = ""
-    file_ids = []
+    file_all = []
 
     try:
         curseforge_id = Vexl("D", num_id)
@@ -162,18 +167,18 @@ async def process_mod_async(num_id, session, progress, task):
             website = "Curseforge"
             if not str(curseforge_id).count("/"):
                 json_data = await get_cfwidget_api_json_async(curseforge_id, session)
-                if 'files' in json_data and json_data['files']:
-                    file_ids = [i["id"] for i in json_data['files']]
-                    latest_time = str(dict(json_data['files'][0])['uploaded_at'])
+                if 'data' in json_data and json_data['data']:
+                    file_all = json_data['data']
+                    latest_time = str(dict(file_all[0])['fileDate'])
                 else:
                     raise ValueError("获取Curseforge数据为空")
             else:
                 latest_time = ""
                 for m in str(curseforge_id).split("/"):
                     json_data = await get_cfwidget_api_json_async(m, session)
-                    if 'files' in json_data and json_data['files']:
-                        file_ids += [i["id"] for i in json_data['files']]
-                        latest_time += str(dict(json_data['files'][0])['uploaded_at']) + "  "
+                    if 'data' in json_data and json_data['data']:
+                        file_all += json_data['data']
+                        latest_time += str(dict(file_all[0])['fileDate']) + "  "
                     else:
                         raise ValueError("获取Curseforge数据为空")
 
@@ -181,37 +186,34 @@ async def process_mod_async(num_id, session, progress, task):
             website = "Modrinth"
             if not str(modrinth_id).count("/"):
                 json_data = await get_modrinth_api_json_async(modrinth_id, session)
-                if json_data:
-                    file_ids = json_data["versions"]
-                    latest_time = str(json_data['updated'])
+                if 'versions' in json_data and json_data['versions']:
+                    file_all = json_data["versions"]
+                    latest_time = str(file_all[0]['date_published'])
                 else:
                     raise ValueError("获取Modrinth数据为空")
             else:
                 latest_time = ""
                 for m in str(modrinth_id).split("/"):
                     json_data = await get_modrinth_api_json_async(m, session)
-                    if json_data:
-                        file_ids += json_data["versions"]
-                        latest_time += str(json_data['updated']) + "  "
+                    if 'versions' in json_data and json_data['versions']:
+                        file_all += json_data["versions"]
+                        latest_time += str(file_all[0]['date_published']) + "  "
                     else:
                         raise ValueError("获取Modrinth数据为空")
         else:
             latest_time = "读取失败"
             if config.blacklist_enabled:
-                add_unreachable_mod_to_blacklist(num_id)
+                await add_unreachable_mod_to_blacklist(num_id)
 
             website = None
 
-        # Update time and check for duplicates
-        time_update("Latest", num_id, latest_time)
-        time_update("Json", num_id, file_ids)
-        matched = check_duplicates(num_id)
-
+        # check for duplicates
+        matched = check_duplicates(num_id, latest_time)
         return {
             "num_id": num_id,
             "mod_name": mod_name,
             "latest_time": latest_time,
-            "file_ids": file_ids,
+            "file_all": file_all,
             "website": website if 'website' in locals() else None,
             "id": curseforge_id or modrinth_id,
             "matched": matched
@@ -219,11 +221,14 @@ async def process_mod_async(num_id, session, progress, task):
 
     except Exception as err:
         print(f"{num_id - 1} {mod_name} 出现错误:{err}，跳过该项")
+        if config.blacklist_enabled:
+            await add_unreachable_mod_to_blacklist(num_id)
         return {
             "num_id": num_id,
             "mod_name": mod_name,
             "latest_time": "读取过程出现错误",
-            "file_ids": "",
+            "file_all": "",
+            "website": website if 'website' in locals() else None,
             "matched": False
         }
     finally:
@@ -233,13 +238,17 @@ async def process_mod_async(num_id, session, progress, task):
 
 
 # Modified download function to be async
-async def download_mod_metadata_async(website, mod_type, time_str, mod_id, file_ids):
-    # You'll need to modify your download_mod_metadata function to be async
-    # or use a thread executor if it must remain synchronous
+async def save_mod_metadata_async(website, mcmod_id, time_str, signal_file_json):
+    """
+    根据提供的网站类型和项目ID下载Mod文件。
+    :param signal_file_json: 该模组需要读取的单个文件元数据
+    :param website: 网站名称（例如：Curseforge或Modrinth）
+    :param mcmod_id: Mod的ID
+    :param time_str: 保存目录的时间戳
+    """
     loop = asyncio.get_event_loop()
-    await loop.run_in_executor(
-        None, download_mod_metadata, website, mod_type, time_str, mod_id, file_ids
-    )
+    return await loop.run_in_executor(None, download_mod_metadata,
+                                      website, mcmod_id, time_str, signal_file_json)
 
 
 # Process latest uploaded mod information
@@ -255,52 +264,63 @@ async def latest_upload_async():
         async with aiohttp.ClientSession(connector=connector) as session:
             # Create a list of tasks
             tasks = []
+
             for num_id in range(2, max_rowFIX + 2):
-                if config.blacklist_enabled and Vexl("C", num_id) not in config.blacklist:
-                    tasks.append(process_mod_async(num_id, session, progress, task))
+                mod_name = Vexl("C", num_id)
+                if not config.blacklist_enabled or mod_name not in config.blacklist:
+                    task_obj = asyncio.create_task(process_mod_async(num_id, session, progress, task))
+                    tasks.append(task_obj)
 
-            # Execute all tasks concurrently with gather
-            results = await asyncio.gather(*tasks, return_exceptions=True)
-
-            # Process results
-            for result in results:
-                if isinstance(result, Exception):
-                    print(f"Task failed with exception: {result}")
-                    continue
-
+            # Execute all tasks and get results one by one to maintain order
+            for task_obj in tasks:
                 try:
+                    result = await task_obj
+
+                    # 最新时间存在差异时，执行以下内容
                     if not result["matched"] and result['latest_time'] != "读取过程出现错误":
                         DuplicatesList.append(
                             f"{result['num_id']}: {result['mod_name']} || {result['latest_time']} | {Vexl('G', result['num_id'])}")
                         unmatchedSum += 1
 
+                        # Curseforge 和 Modrinth 都采用“ID”作为id键名
+                        file_ids = [i["id"] for i in result["file_all"]]
+
                         if download_enable and 'website' in result and result['website']:
                             num_id = result['num_id']
                             # Look for most recent valid list as pastJson
                             pastJson = None
+
                             try:
-                                if not (isinstance(eval(Vexl("K", num_id)), list)):
-                                    pastJson = Vexl("K", num_id)
-                                elif not (isinstance(eval(Vexl("L", num_id)), list)):
-                                    pastJson = Vexl("L", num_id)
-                                elif not (isinstance(eval(Vexl("J", num_id)), list)):
-                                    pastJson = Vexl("J", num_id)
+                                J_col = eval(Vexl("J", num_id))
+                                K_col = eval(Vexl("K", num_id))
+                                L_col = eval(Vexl("L", num_id))
+                                if isinstance(J_col, list) and len(J_col) > 0:
+                                    pastJson = J_col
+                                elif isinstance(K_col, list) and len(K_col) > 0:
+                                    pastJson = K_col
+                                elif isinstance(L_col, list) and len(L_col) > 0:
+                                    pastJson = L_col
                             except:
-                                pastJson = None
+                                pass
 
                             if pastJson:
                                 try:
-                                    fileID = list(set(result['file_ids']).difference(set(eval(pastJson))))
-                                    if fileID:
-                                        await download_mod_metadata_async(
-                                            result['website'],
-                                            Vexl("B", num_id),
-                                            validify_processesTime,
-                                            result['id'],
-                                            fileID
-                                        )
+                                    different_fileIDs = list(set(file_ids).difference(set(pastJson)))
+                                    for file_id in different_fileIDs:
+                                        # 保存新文件的元数据
+                                        # 找到“id” 为 file_id的项
+                                        signal_file_json = next((item for item in result["file_all"] if item["id"] == file_id), None)
+                                        if signal_file_json:
+                                            await save_mod_metadata_async(result['website'],
+                                                                          result['id'],
+                                                                          validify_processesTime,
+                                                                          signal_file_json)
                                 except Exception as e:
                                     print(f"Error processing file differences: {e}")
+
+                        # 更新改项的最新时间和file_ids
+                        time_update("Latest", num_id, result['latest_time'])
+                        time_update("Json", num_id, file_ids)
                     else:
                         matchedSum += 1
 
@@ -334,7 +354,7 @@ async def main():
     print(datetime.now(), "完成遍历")
     if DuplicatesList:
         print(f"发现已更新的模组：\n {DuplicatesList}")
-        config.write_config("LastModified", str(datetime.now()))
+        config.write_config("LastModified", str(validify_processesTime))
         config.write_config("Finished_upload", False)
     else:
         print("没有发现已更新的模组")
@@ -344,7 +364,7 @@ async def main():
         wb.save(DATABASE_PATH)
         print("所有改动已成功保存")
     except Exception as E:
-        new_path = DATABASE_PATH.replace(".xlsx", f"_{datetime.now().strftime('%Y%m%d%H%M%S')}.xlsx")
+        new_path = DATABASE_PATH.replace(".xlsx", f"_{validify_processesTime}.xlsx")
         print("保存出错: {0}\n 将保存至新文件{1}".format(E, new_path))
         wb.save(new_path)
 
