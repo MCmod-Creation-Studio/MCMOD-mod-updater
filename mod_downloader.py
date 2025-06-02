@@ -3,6 +3,7 @@ import config
 from os import makedirs, path
 import requests as rq
 from tqdm import tqdm
+from toLog import toLog
 
 yaml = config.yaml
 config = config.config
@@ -94,7 +95,7 @@ def download_mod_metadata(website, mcmod_id, time, signal_file_json):
                           result["gameType"])
 
     except Exception as E:
-        print("读取失败" + str(E) + "跳过此项目在" + website + "上的检测，MC百科ID: " + str(mcmod_id))
+        toLog("读取失败" + str(E) + "跳过此项目在" + website + "上的检测，MC百科ID: " + str(mcmod_id))
 
 
 def save_mod_metadata(time, file_name, mcmod_id, url, file_date, game_versions, release_type, game_type):
@@ -148,10 +149,10 @@ def requests_download(url, time, file_name):
 
     #检测文件是否存在
     if path.exists('./{0}/{1}/{2}'.format(DOWNLOAD_PATH, time, file_name)):
-        print("文件已存在：" + file_name)
+        toLog("文件已存在：" + file_name)
         return True
 
-    print("正在下载：" + url)
+    toLog("正在下载：" + url)
     makedirs('./{0}/{1}'.format(DOWNLOAD_PATH, time), exist_ok=True)  # 创建保存目录（如果不存在）
 
     error_counter = 0
@@ -170,9 +171,9 @@ def requests_download(url, time, file_name):
         except Exception as E:
             if error_counter < TIMEOUT_RETRY:
                 error_counter += 1
-                print(f"下载失败：{url}，\n原因：{E}\n（重试次数：{error_counter}/5）")
+                toLog(f"下载失败：{url}，\n原因：{E}\n（重试次数：{error_counter}/5）")
             else:
-                print(f"下载失败：{url}，\n原因：{E}\n已达到最大重试次数，跳过此文件")
+                toLog(f"下载失败：{url}，\n原因：{E}\n已达到最大重试次数，跳过此文件")
                 return False
 
 
@@ -188,6 +189,6 @@ def check_oversize(url):
 
 
 if __name__ == "__main__":
-    k = rq.get(r'https://api.curseforge.com/v1/mods/{0}/files'.format(381583),
+    k = rq.get(r'https://api.curseforge.com/v1/mods/{0}/files'.format(1213109),
                headers=cf_headers).json()
-    print(k)
+    toLog(k)

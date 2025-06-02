@@ -1,8 +1,11 @@
+import time
+
 import config
 from datetime import datetime
 import PyTaskbar
 import aiohttp
 import asyncio
+from toLog import toLog
 from openpyxl import load_workbook
 from openpyxl.styles import PatternFill
 from rich.progress import Progress
@@ -95,7 +98,7 @@ async def get_cfwidget_api_json_async(cf_project_id, session):
     while retry_count < max_retries:
         try:
             async with session.get(f'https://api.curseforge.com/v1/mods/{cf_project_id}/files',
-                                   headers=cf_headers, ssl=False, timeout=420) as response:
+                                   headers=cf_headers, timeout=420) as response:
                 return await response.json()
         except aiohttp.ClientResponseError as e:
             # Handle specific HTTP errors
@@ -104,12 +107,13 @@ async def get_cfwidget_api_json_async(cf_project_id, session):
         except Exception as e:
             retry_count += 1
             if retry_count >= max_retries:
-                print(f"Error getting Curseforge data for {cf_project_id} after {max_retries} attempts: {e}")
+                toLog(f"Error getting Curseforge data for {cf_project_id} after {max_retries} attempts: {e}")
                 return {'data': []}
             else:
                 wait_time = 2 ** retry_count  # Exponential backoff
-                print(f"Attempt {retry_count} failed for {cf_project_id}, retrying in {wait_time} seconds...")
+                toLog(f"Attempt {retry_count} failed for {cf_project_id}, retrying in {wait_time} seconds: {e}")
                 await asyncio.sleep(wait_time)
+
 
 
 # Get Modrinth project API JSON data
@@ -120,7 +124,7 @@ async def get_modrinth_api_json_async(mr_project_id, session):
     while retry_count < max_retries:
         try:
             async with session.get(f'https://api.modrinth.com/v2/project/{mr_project_id}/version',
-                                   headers=headers, ssl=False, timeout=420) as response:
+                                   headers=headers, timeout=420) as response:
 
                 return_json = await response.json()
                 return {"versions": return_json}
@@ -132,11 +136,11 @@ async def get_modrinth_api_json_async(mr_project_id, session):
                 return {"versions": []}
             retry_count += 1
             if retry_count >= max_retries:
-                print(f"Error getting Modrinth data for {mr_project_id} after {max_retries} attempts: {e}")
+                toLog(f"Error getting Modrinth data for {mr_project_id} after {max_retries} attempts: {e}")
                 return {"versions": []}
             else:
                 wait_time = 2 ** retry_count  # Exponential backoff
-                print(
+                toLog(
                     f"Attempt {retry_count} failed for {mr_project_id} because {e}, retrying in {wait_time} seconds...")
                 await asyncio.sleep(wait_time)
 
@@ -144,14 +148,15 @@ async def get_modrinth_api_json_async(mr_project_id, session):
 async def add_unreachable_mod_to_blacklist(row: int):
     """Check if the mod name is in the blacklist."""
     # 如果F、G、H列均为“读取失败”，则列入黑名单
-    if Vexl("F", row) == "读取失败" and Vexl("G", row) == "读取失败" and Vexl("H", row) == "读取失败":
+    print(Vexl("J", row))
+    if Vexl("J", row) == "[]" and Vexl("K", row) == "[]" and Vexl("L", row) == "[]":
         mod_name = Vexl("C", row)
         if mod_name not in config.blacklist:
             config.blacklist.append(mod_name)
-            print(f"检测到多次读取{mod_name}失败，其将列入检测黑名单")
+            toLog(f"检测到多次读取{mod_name}失败，其将列入检测黑名单")
             config.write_config("blacklist", config.blacklist)
             # 给涂上蓝色
-            exl[f"F{row}"].fill = blue_fill
+            exl[f"B{row}"].fill = blue_fill
 
 
 async def process_mod_async(num_id, session, progress, task):
@@ -209,6 +214,8 @@ async def process_mod_async(num_id, session, progress, task):
 
         # check for duplicates
         matched = check_duplicates(num_id, latest_time)
+        if not matched:
+            toLog(f"{num_id - 1} {mod_name} 最新时间与上次不同，已标记为不匹配，其使用的id为：{curseforge_id} {modrinth_id} ")
         return {
             "num_id": num_id,
             "mod_name": mod_name,
@@ -220,7 +227,7 @@ async def process_mod_async(num_id, session, progress, task):
         }
 
     except Exception as err:
-        print(f"{num_id - 1} {mod_name} 出现错误:{err}，跳过该项")
+        toLog(f"{num_id - 1} {mod_name} 出现错误:{err}，跳过该项")
         if config.blacklist_enabled:
             await add_unreachable_mod_to_blacklist(num_id)
         return {
@@ -260,7 +267,7 @@ async def latest_upload_async():
         task = progress.add_task("[red]正在初始化......", total=max_rowFIX)
 
         # Create connection limit to avoid overwhelming servers
-        connector = aiohttp.TCPConnector(limit=POOL_SIZE, ssl=False)
+        connector = aiohttp.TCPConnector(limit=POOL_SIZE, ssl=True)
         async with aiohttp.ClientSession(connector=connector) as session:
             # Create a list of tasks
             tasks = []
@@ -279,8 +286,9 @@ async def latest_upload_async():
                     # 最新时间存在差异时，执行以下内容
                     if not result["matched"] and result['latest_time'] != "读取过程出现错误":
                         DuplicatesList.append(
-                            f"{result['num_id']}: {result['mod_name']} || {result['latest_time']} | {Vexl('G', result['num_id'])}")
+                            f"{result['num_id']}: {result['mod_name']} || {result['latest_time']} | {Vexl('F', result['num_id'])}")
                         unmatchedSum += 1
+                        toLog(f"{result['file_all']}")
 
                         # Curseforge 和 Modrinth 都采用“ID”作为id键名
                         file_ids = [i["id"] for i in result["file_all"]]
@@ -312,11 +320,11 @@ async def latest_upload_async():
                                         signal_file_json = next((item for item in result["file_all"] if item["id"] == file_id), None)
                                         if signal_file_json:
                                             await save_mod_metadata_async(result['website'],
-                                                                          result['id'],
+                                                                          result['num_id'],
                                                                           validify_processesTime,
                                                                           signal_file_json)
                                 except Exception as e:
-                                    print(f"Error processing file differences: {e}")
+                                    toLog(f"Error processing file differences: {e}")
 
                         # 更新改项的最新时间和file_ids
                         time_update("Latest", num_id, result['latest_time'])
@@ -325,7 +333,7 @@ async def latest_upload_async():
                         matchedSum += 1
 
                 except Exception as e:
-                    print(f"Error processing result: {e}")
+                    toLog(f"Error processing result: {e}")
 
         progress.update(task, advance=0, description="[green][ √ ]已完成处理！")
 
@@ -344,28 +352,29 @@ async def main():
             config.blacklist = list()
             blacklisted_count = 0
         if blacklisted_count > 0:
-            print(f"当前有 {blacklisted_count} 个模组在黑名单中，这些模组将被跳过处理")
+            toLog(f"当前有 {blacklisted_count} 个模组在黑名单中，这些模组将被跳过处理")
 
     # Start processing latest uploaded mod information
     await latest_upload_async()
 
     # Print summary information
-    print(f"匹配：{matchedSum}，不匹配：{unmatchedSum}")
-    print(datetime.now(), "完成遍历")
+    toLog(f"匹配：{matchedSum}，不匹配：{unmatchedSum}")
+    toLog("完成遍历")
     if DuplicatesList:
-        print(f"发现已更新的模组：\n {DuplicatesList}")
+        toLog(f"发现已更新的模组：\n {DuplicatesList}")
         config.write_config("LastModified", str(validify_processesTime))
         config.write_config("Finished_upload", False)
     else:
-        print("没有发现已更新的模组")
+        toLog("没有发现已更新的模组")
 
     # Save Excel file
     try:
         wb.save(DATABASE_PATH)
-        print("所有改动已成功保存")
+        toLog("所有改动已成功保存")
+
     except Exception as E:
         new_path = DATABASE_PATH.replace(".xlsx", f"_{validify_processesTime}.xlsx")
-        print("保存出错: {0}\n 将保存至新文件{1}".format(E, new_path))
+        toLog("保存出错: {0}\n 将保存至新文件{1}".format(E, new_path))
         wb.save(new_path)
 
     # Update taskbar status
@@ -380,3 +389,8 @@ if __name__ == "__main__":
     finally:
         loop.run_until_complete(loop.shutdown_asyncgens())
         loop.close()
+        # Submit log if logging is enabled
+        if config.LOG_ENABLED:
+            from toLog import submit_log
+            submit_log(validify_processesTime)
+

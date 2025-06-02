@@ -26,9 +26,21 @@ POOL_SIZE: 5
 # 包含模组信息的Excel数据库文件的路径，由MCMOD网站所有者提供
 # The program will delete expired download cache folders, you can set the maximum number of cache folders and the maximum survival time of cache folders (unit: days)
 # 程序会删除过期的下载缓存文件夹，你可以设置最大缓存文件夹数量和缓存文件夹的最大存活时间（单位：天）
-DATABASE_PATH: ./Database.xlsx
+DATABASE_PATH: 
 MAX_DOWNLOAD_CACHE_FOLDERS: 5
 MAX_DOWNLOAD_CACHE_AGE_DAYS: 30
+
+# === Log path/程序日志位置 ===
+# The log file will be created as latest.log every time the program runs if LOG_ENABLED is True
+# 日志文件的路径(文件夹)，如果LOG_ENABLED为True，程序每次运行时都会创建一个新的日志文件latest.log
+# Normally, The log file will be backed up as {processing time}.log when the program ends
+# 一般情况下，当程序完整结束时，将会备份日志文件为{处理时间}.log
+# You can set the maximum number of log files (excluding latest.log) and the maximum age of log files (in days)
+# 你可以设置日志文件的最大数量（不包括latest.log）和最大存活时间（单位：天）
+LOG_ENABLED: false
+LOG_PATH: ./logs
+MAX_LOG_FILES: 5
+MAX_LOG_AGE_DAYS: 30
 
 # === Blacklist configuration/黑名单配置 ===
 # Mods that fail to be read four times will be added to the blacklist
@@ -104,10 +116,16 @@ blacklist:
                 raise ValueError(f"Error parsing configuration file: {e}")
 
             self.CURSEFORGE_API_KEY = config.get('CURSEFORGE_API_KEY', None)
+
             self.DATABASE_PATH = config.get('DATABASE_PATH', None)
             self.POOL_SIZE = config.get('POOL_SIZE', 5)
             self.MAX_DOWNLOAD_CACHE_FOLDERS = config.get('MAX_DOWNLOAD_CACHE_FOLDERS', 5)
             self.MAX_DOWNLOAD_CACHE_AGE_DAYS = config.get('MAX_DOWNLOAD_CACHE_AGE_DAYS', 30)
+
+            self.LOG_ENABLED = config.get('LOG_ENABLED', False)
+            self.LOG_PATH = config.get('LOG_PATH', './logs')
+            self.MAX_LOG_FILES = config.get('MAX_LOG_FILES', 5)
+            self.MAX_LOG_AGE_DAYS = config.get('MAX_LOG_AGE_DAYS', 30)
 
             self.download_enable = config.get('download_enable', False)
             self.headers = config.get('headers', {
@@ -148,6 +166,13 @@ blacklist:
             if self.download_enable:
                 if not self.DOWNLOAD_PATH:
                     raise ValueError("DOWNLOAD_PATH is not set.")
+
+            if self.LOG_ENABLED:
+                if not self.LOG_PATH:
+                    raise ValueError("LOG_PATH is not set.")
+                if not os.path.exists(self.LOG_PATH):
+                    os.makedirs(self.LOG_PATH, exist_ok=True)
+
             if self.Zmail_enable:
                 if not self.ZMAIL_USERNAME:
                     raise ValueError("ZMAIL_USERNAME is not set.")

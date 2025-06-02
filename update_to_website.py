@@ -9,6 +9,7 @@ from selenium.webdriver.edge.service import Service as EdgeService
 from selenium.webdriver.firefox.service import Service as FirefoxService
 from selenium.webdriver.common.by import By
 from typing import Tuple
+from toLog import toLog
 import config
 from distutils.version import LooseVersion
 from mod_downloader import requests_download, check_oversize
@@ -20,7 +21,7 @@ url = "https://modfile-dl.mcmod.cn/admin/"
 login_url = "https://www.mcmod.cn/login/"
 center_url = "https://center.mcmod.cn/"
 if config.DOWNLOAD_PATH and config.LastModified:
-    upload_folder = str(os.path.join(config.DOWNLOAD_PATH, config.LastModified))
+    upload_folder = str(os.path.join(config.DOWNLOAD_PATH, str(config.LastModified)))
 else:
     raise ValueError("DOWNLOAD_PATH or LastModified is not set.")
 
@@ -56,20 +57,20 @@ sec_mods_upload = []
 # 检查是否能链接
 def check_connection():
     try:
-        print("正在连接至MC百科文件管理后台...")
+        toLog("正在连接至MC百科文件管理后台...")
         drive.get(url)
         if drive.find_elements(By.CLASS_NAME, "modfile-select-frame"):
-            print("连接成功！")
+            toLog("连接成功！")
             return True
         elif drive.find_elements(By.CLASS_NAME, "html-tag"):
-            print("没有权限访问文件管理后台，请检查是否登录了MC百科。")
-            print("将弹出窗口要求登录... 登录后程序将继续运行")
+            toLog("没有权限访问文件管理后台，请检查是否登录了MC百科。")
+            toLog("将弹出窗口要求登录... 登录后程序将继续运行")
             if login():
                 return check_connection()
             else:
                 end_connection("登陆失败")
     except Exception as e:
-        print("未定义的错误：", e)
+        toLog("未定义的错误：", e)
         return False
 
 
@@ -88,13 +89,13 @@ def login():
             #             drive.find_element(By.ID,'p').send_keys(config.Login_password)
             #             drive.find_element(By.ID,'login_button').click()
             pass
-        print("登录成功！")
+        toLog("登录成功！")
         drive.get(url)
         time.sleep(1)
         config.write_config("Cookies", drive.get_cookies())
         return True
     except Exception as e:
-        print("打开页面错误：", e)
+        toLog("打开页面错误：", e)
         return False
 
 
@@ -110,7 +111,7 @@ def upload_mod(available_files_path) -> Tuple[bool, str]:
             with open(os.path.join(upload_folder, path), 'r', encoding='utf-8') as file:
                 content = yaml.load(file)
                 filename = content['fileName']
-                print("正在上传：", filename)
+                toLog("正在上传：", filename)
                 skip_mark = False
                 McmodID = content['McmodID']
 
@@ -122,7 +123,7 @@ def upload_mod(available_files_path) -> Tuple[bool, str]:
                     # 上传文件
                 try:
                     if filename in uploaded_files_name:
-                        print("文件已存在，跳过上传")
+                        toLog("文件已存在，跳过上传")
                         skip_mark = True
 
                     if skip_mark:
@@ -130,13 +131,13 @@ def upload_mod(available_files_path) -> Tuple[bool, str]:
 
                     if check_oversize(content['downloadUrl']):
                         skip_mark = True
-                        print(f"文件{content['fileName']}超过75MB，跳过上传")
+                        toLog(f"文件{content['fileName']}超过75MB，跳过上传")
 
                     if skip_mark:
                         continue
-                    print("正在下载文件：", filename)
+                    toLog("正在下载文件：", filename)
                     requests_download(content['downloadUrl'], config.LastModified, content['fileName'])
-                    print("正在自动化操作，请勿接触键盘")
+                    toLog("正在自动化操作，请勿接触键盘")
                     drive.find_element(By.XPATH, "//button[contains(text(),'上传文件')]").click()
                     time.sleep(0.8)
                     drive.find_element(By.XPATH, "//label[@id='modfile-select-label']").click()
@@ -156,20 +157,20 @@ def upload_mod(available_files_path) -> Tuple[bool, str]:
                     tuo_button = drive.find_elements(By.XPATH, "//button[contains(text(),'妥')]")
                     if len(tuo_button) > 0:
                         # 上传成功
-                        print("上传成功！")
+                        toLog("上传成功！")
                         # 点击妥
                         tuo_button[0].click()
                     else:
                         # 上传失败
-                        print("上传失败，存入稍后处理列表")
+                        toLog("上传失败，存入稍后处理列表")
                         sec_mods_upload.append(path)
                         # 按ESC退出文件选择界面
                         pyautogui.press('esc')
                         # 刷新页面
                         drive.refresh()
                 except Exception as e:
-                    print("上传文件错误：", e)
-                    print("上传失败，存入稍后处理列表")
+                    toLog("上传文件错误：", e)
+                    toLog("上传失败，存入稍后处理列表")
                     sec_mods_upload.append(path)
                     drive.refresh()
                     pass
@@ -179,9 +180,9 @@ def upload_mod(available_files_path) -> Tuple[bool, str]:
         return True, "全部文件上传成功"
     else:
         # 处理稍后上传的文件
-        print("以下文件上传失败，现在进行处理：")
+        toLog("以下文件上传失败，现在进行处理：")
         for filename in sec_mods_upload:
-            print(filename)
+            toLog(filename)
         # 重新上传
         upload_mod(sec_mods_upload.copy())
 
@@ -295,7 +296,7 @@ def fill_mod_detail(info):
         auto_tick_content += "数据包 "
         # 对在Curseforge获取的数据包进行提醒
         if "forgecdn" in info['downloadUrl']:
-            print("请注意，该“数据包”的文件标签判断可能不准确，因无法从Curseforge API准确判断是否为数据包")
+            toLog("请注意，该“数据包”的文件标签判断可能不准确，因无法从Curseforge API准确判断是否为数据包")
 
     if info['fileName'].endswith(".mcaddon"):
         drive.find_element(By.XPATH, "//label[@for='class-data-api-8-upload']").click()
@@ -341,24 +342,24 @@ def fill_mod_detail(info):
         ask_handle_reason += "运作方式未被自动填写"
 
     if any([platform_tick, function_tick]):
-        print("自动化操作完成！")
-        print("自动化操作内容：", str(content), auto_tick_content)
+        toLog("自动化操作完成！")
+        toLog("自动化操作内容：", str(content), auto_tick_content)
         if not tag_tick:
-            print("文件标签未被自动填写")
+            toLog("文件标签未被自动填写")
     else:
-        print("自动化操作失败：", ask_handle_reason)
-        print("已自动化填写的内容：", auto_tick_content)
-        print("请手动填写信息后点击上传按钮")
+        toLog("自动化操作失败：", ask_handle_reason)
+        toLog("已自动化填写的内容：", auto_tick_content)
+        toLog("请手动填写信息后点击上传按钮")
         while drive.find_elements(By.XPATH, "//p[contains(text(),'成功上传文件 1 个：')]"):
             if drive.find_elements(By.XPATH, "//p[contains(text(),'成功覆盖文件 1 个：')]"):
-                print("文件已存在，跳过上传")
+                toLog("文件已存在，跳过上传")
                 break
             pass
 
 
 def end_connection(reason: str):
     drive.quit()
-    print("已关闭浏览器，原因：", reason)
+    toLog("已关闭浏览器，原因：", reason)
 
 
 def get_available_files():
@@ -376,7 +377,7 @@ def get_available_files():
                 comparison = str(mod_id).join(game_versions)
                 if comparison in temp_comparison:
                     if str(LooseVersion(path)) > str(LooseVersion(temp_comparison[comparison])):
-                        print(f"{temp_comparison[comparison]}有更新的版本{path}，将覆盖旧版本")
+                        toLog(f"{temp_comparison[comparison]}有更新的版本{path}，将覆盖旧版本")
                         temp_comparison[comparison] = path
                     else:
                         continue
@@ -394,28 +395,32 @@ def get_available_files():
                 if content['fileName'] in available_files_path:
                     available_files_path.remove(content['fileName'])
         except Exception as E:
-            print("筛选有效文件失败：\n" + str(E))
+            toLog("筛选有效文件失败：\n" + str(E))
 
     return available_files_path
 
-
-config.load_config()
-if check_connection():
-    # 检查待上传的文件夹是否存在
-    if os.path.exists(upload_folder):
-        print("已找到待上传的文件夹：", upload_folder)
-        # 上传文件
-        feedback = upload_mod(get_available_files())
-        if feedback[0]:
-            print("上传成功！")
-            config.write_config("Finished_upload", True)
-            end_connection("上传成功")
+try:
+    config.load_config()
+    if check_connection():
+        # 检查待上传的文件夹是否存在
+        if os.path.exists(upload_folder):
+            toLog("已找到待上传的文件夹：", upload_folder)
+            # 上传文件
+            feedback = upload_mod(get_available_files())
+            if feedback[0]:
+                toLog("上传成功！")
+                config.write_config("Finished_upload", True)
+                end_connection("上传成功")
+            else:
+                toLog("上传失败：", feedback[1])
+                end_connection(feedback[1])
         else:
-            print("上传失败：", feedback[1])
-            end_connection(feedback[1])
+            toLog("没有找到待上传的文件夹：", upload_folder)
+            config.write_config("Finished_upload", True)
+            end_connection("没有找到待上传的文件夹")
     else:
-        print("没有找到待上传的文件夹：", upload_folder)
-        config.write_config("Finished_upload", True)
-        end_connection("没有找到待上传的文件夹")
-else:
-    end_connection("无法连接至服务器")
+        end_connection("无法连接至服务器")
+finally:
+    if config.LOG_ENABLED:
+        import toLog
+        toLog.submit_log(config.LastModified)
