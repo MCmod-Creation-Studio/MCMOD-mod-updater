@@ -15,7 +15,7 @@ from distutils.version import LooseVersion
 from mod_downloader import requests_download, check_oversize
 
 yaml = config.yaml
-config = config.config
+config = config.Config()
 
 url = "https://modfile-dl.mcmod.cn/admin/"
 login_url = "https://www.mcmod.cn/login/"
@@ -70,7 +70,7 @@ def check_connection():
             else:
                 end_connection("登陆失败")
     except Exception as e:
-        toLog("未定义的错误：", e)
+        toLog("未定义的错误："+str(e))
         return False
 
 
@@ -95,7 +95,7 @@ def login():
         config.write_config("Cookies", drive.get_cookies())
         return True
     except Exception as e:
-        toLog("打开页面错误：", e)
+        toLog("打开页面错误："+str(e))
         return False
 
 
@@ -111,7 +111,7 @@ def upload_mod(available_files_path) -> Tuple[bool, str]:
             with open(os.path.join(upload_folder, path), 'r', encoding='utf-8') as file:
                 content = yaml.load(file)
                 filename = content['fileName']
-                toLog("正在上传：", filename)
+                toLog("正在上传："+filename)
                 skip_mark = False
                 McmodID = content['McmodID']
 
@@ -135,7 +135,7 @@ def upload_mod(available_files_path) -> Tuple[bool, str]:
 
                     if skip_mark:
                         continue
-                    toLog("正在下载文件：", filename)
+                    toLog("正在下载文件："+filename)
                     requests_download(content['downloadUrl'], config.LastModified, content['fileName'])
                     toLog("正在自动化操作，请勿接触键盘")
                     drive.find_element(By.XPATH, "//button[contains(text(),'上传文件')]").click()
@@ -169,7 +169,7 @@ def upload_mod(available_files_path) -> Tuple[bool, str]:
                         # 刷新页面
                         drive.refresh()
                 except Exception as e:
-                    toLog("上传文件错误：", e)
+                    toLog(f"上传文件错误：{e}")
                     toLog("上传失败，存入稍后处理列表")
                     sec_mods_upload.append(path)
                     drive.refresh()
@@ -343,12 +343,12 @@ def fill_mod_detail(info):
 
     if any([platform_tick, function_tick]):
         toLog("自动化操作完成！")
-        toLog("自动化操作内容：", str(content), auto_tick_content)
+        toLog("自动化操作内容："+str(content)+auto_tick_content)
         if not tag_tick:
             toLog("文件标签未被自动填写")
     else:
-        toLog("自动化操作失败：", ask_handle_reason)
-        toLog("已自动化填写的内容：", auto_tick_content)
+        toLog("自动化操作失败："+ask_handle_reason)
+        toLog("已自动化填写的内容："+auto_tick_content)
         toLog("请手动填写信息后点击上传按钮")
         while drive.find_elements(By.XPATH, "//p[contains(text(),'成功上传文件 1 个：')]"):
             if drive.find_elements(By.XPATH, "//p[contains(text(),'成功覆盖文件 1 个：')]"):
@@ -359,7 +359,7 @@ def fill_mod_detail(info):
 
 def end_connection(reason: str):
     drive.quit()
-    toLog("已关闭浏览器，原因：", reason)
+    toLog("已关闭浏览器，原因："+reason)
 
 
 def get_available_files():
@@ -399,28 +399,25 @@ def get_available_files():
 
     return available_files_path
 
-try:
-    config.load_config()
-    if check_connection():
-        # 检查待上传的文件夹是否存在
-        if os.path.exists(upload_folder):
-            toLog("已找到待上传的文件夹：", upload_folder)
-            # 上传文件
-            feedback = upload_mod(get_available_files())
-            if feedback[0]:
-                toLog("上传成功！")
-                config.write_config("Finished_upload", True)
-                end_connection("上传成功")
-            else:
-                toLog("上传失败：", feedback[1])
-                end_connection(feedback[1])
-        else:
-            toLog("没有找到待上传的文件夹：", upload_folder)
+
+config.load_config()
+if check_connection():
+    # 检查待上传的文件夹是否存在
+    if os.path.exists(upload_folder):
+        toLog("已找到待上传的文件夹："+upload_folder)
+        # 上传文件
+        feedback = upload_mod(get_available_files())
+        if feedback[0]:
+            toLog("上传成功！")
             config.write_config("Finished_upload", True)
-            end_connection("没有找到待上传的文件夹")
+            end_connection("上传成功")
+        else:
+            toLog("上传失败："+feedback[1])
+            end_connection(feedback[1])
     else:
-        end_connection("无法连接至服务器")
-finally:
-    if config.LOG_ENABLED:
-        import toLog
-        toLog.submit_log(config.LastModified)
+        toLog("没有找到待上传的文件夹："+upload_folder)
+        config.write_config("Finished_upload", True)
+        end_connection("没有找到待上传的文件夹")
+else:
+    end_connection("无法连接至服务器")
+
