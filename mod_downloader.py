@@ -6,7 +6,7 @@ from tqdm import tqdm
 from toLog import toLog
 
 yaml = config.yaml
-config = config.config
+config = config.Config()
 CURSEFORGE_API_KEY = config.CURSEFORGE_API_KEY
 DOWNLOAD_PATH = config.DOWNLOAD_PATH
 TIMEOUT_RETRY = config.TIMEOUT_RETRY  # 最大重试次数
@@ -95,7 +95,7 @@ def download_mod_metadata(website, mcmod_id, time, signal_file_json):
                           result["gameType"])
 
     except Exception as E:
-        toLog("读取失败" + str(E) + "跳过此项目在" + website + "上的检测，MC百科ID: " + str(mcmod_id))
+        toLog("读取失败：" + str(E) + "跳过此项目在" + website + "上的检测，MC百科ID: " + str(mcmod_id))
 
 
 def save_mod_metadata(time, file_name, mcmod_id, url, file_date, game_versions, release_type, game_type):
