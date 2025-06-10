@@ -1,13 +1,12 @@
 import ruamel.yaml
 import os
-
 yaml = ruamel.yaml.YAML(typ='rt')
 
 
 class Config:
     def __init__(self, config_file='config.yaml'):
         self.config_file = config_file
-        if not os.path.exists(self.config_file):
+        if not os.path.exists(self.config_file) or os.path.getsize(self.config_file) == 0:
             self.create_default_config()
         self.load_config()
 
@@ -103,6 +102,8 @@ blacklist:
 """
         with open(self.config_file, 'w', encoding='utf-8') as file:
             file.write(default_config)
+            raise FileNotFoundError("Default configuration file created. Please edit it before running the program.")
+        return
 
     def load_config(self):
         if not os.path.exists(self.config_file):
@@ -154,7 +155,7 @@ blacklist:
             self.Cookies = config.get('Cookies', None)
 
             self.blacklist_enabled = config.get('blacklist_enabled', False)
-            self.blacklist = config.get('blacklist', list())
+            self.blacklist = config.get('Blacklist', list())
 
             # 检查是否为空
             if not self.CURSEFORGE_API_KEY:
@@ -199,9 +200,6 @@ blacklist:
             raise KeyError(f"Key '{key}' not found in configuration file.")
         with open(self.config_file, 'w', encoding='utf-8') as file:
             yaml.dump(config, file)
-
-
-config = Config()
 
 if __name__ == "__main__":
     try:
