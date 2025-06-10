@@ -13,7 +13,7 @@ class ModManagerApp:
         # Import configuration at initialization
         import config
         from toLog import toLog
-        self.config = config.config
+        self.config = config.Config()
         self.logging = toLog
 
     async def cleanup_mod_folders(self):
@@ -54,7 +54,7 @@ class ModManagerApp:
                 except Exception as e:
                     self.logging(f"删除文件夹 {folder_path} 失败: {e}")
 
-        # Delete oldest folders if we have more than max_folders
+        # Delete the oldest folders if we have more than max_folders
         while len(timestamp_dirs) > max_folders:
             oldest_folder = timestamp_dirs.pop(0)
             try:
@@ -191,8 +191,32 @@ class ModManagerApp:
 
 # Application entry point
 def main():
+    if sys.platform == 'win32':
+        # Use SelectorEventLoop to avoid issues with ProactorEventLoop
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
     app = ModManagerApp()
-    return asyncio.run(app.run())
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
+    try:
+        return loop.run_until_complete(app.run())
+    finally:
+        # Ensure proper cleanup
+        try:
+            tasks = asyncio.all_tasks(loop)
+            for task in tasks:
+                task.cancel()
+
+            # Wait for all tasks to be cancelled
+            if tasks:
+                loop.run_until_complete(asyncio.gather(*tasks, return_exceptions=True))
+
+            # Close the loop properly
+            loop.run_until_complete(loop.shutdown_asyncgens())
+            loop.close()
+        except Exception as e:
+            print(f"Error during cleanup: {e}")
 
 
 if __name__ == "__main__":
