@@ -124,30 +124,20 @@ def upload_mod(available_files_path) -> Tuple[bool, str]:
                 try:
                     if filename in uploaded_files_name:
                         toLog("文件已存在，跳过上传")
-                        skip_mark = True
-
-                    if skip_mark:
                         continue
 
                     if check_oversize(content['downloadUrl']):
-                        skip_mark = True
                         toLog(f"文件{content['fileName']}超过75MB，跳过上传")
-
-                    if skip_mark:
                         continue
+
                     toLog("正在下载文件："+filename)
                     requests_download(content['downloadUrl'], config.LastModified, content['fileName'])
                     toLog("正在自动化操作，请勿接触键盘")
                     drive.find_element(By.XPATH, "//button[contains(text(),'上传文件')]").click()
-                    time.sleep(0.8)
-                    drive.find_element(By.XPATH, "//label[@id='modfile-select-label']").click()
-                    time.sleep(1)
                     to_type = os.path.abspath(os.path.join(upload_folder, filename))
-                    pyperclip.copy(to_type)
-                    pyautogui.hotkey('ctrl', 'v')
                     time.sleep(0.8)
-                    pyautogui.typewrite("\n")
-                    time.sleep(0.5)
+                    drive.find_element(By.XPATH, "//input[@type='file']").send_keys(to_type)
+                    time.sleep(0.8)
                     fill_mod_detail(content)
                     if skip_mark:
                         continue
