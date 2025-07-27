@@ -1,5 +1,3 @@
-import time
-
 import config
 from datetime import datetime
 import PyTaskbar

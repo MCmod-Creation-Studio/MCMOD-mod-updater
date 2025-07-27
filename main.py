@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
-import asyncio
 import os
 import re
 import shutil
-import sys
 import time
 from datetime import datetime
 
