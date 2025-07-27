@@ -36,6 +36,7 @@ urllib3_disable_warnings()
 green_fill = PatternFill(patternType='solid', fgColor='90EE90')  # Light green
 red_fill = PatternFill(patternType='solid', fgColor='D94600')  # Red
 blue_fill = PatternFill(patternType='solid', fgColor='A0C4FF')  # Light blue
+no_fill = PatternFill(patternType='none')  # No fill
 
 # Initialize global variables
 max_rowFIX = unmatchedSum = matchedSum = 0
@@ -147,7 +148,6 @@ async def get_modrinth_api_json_async(mr_project_id, session):
 
 
 async def add_unreachable_mod_to_blacklist(row: int):
-    """Check if the mod name is in the blacklist."""
     global blacklist
     # 如果F、G、H列均为“读取失败”，则列入黑名单
     if Vexl("J", row) == "[]" and Vexl("K", row) == "[]" and Vexl("L", row) == "[]":
@@ -168,6 +168,8 @@ async def process_mod_async(num_id, session, progress, task):
     try:
         curseforge_id = Vexl("D", num_id)
         modrinth_id = Vexl("E", num_id)
+        # 给涂上白色
+        exl[f"B{num_id}"].fill = no_fill
 
         if curseforge_id is not None:
             used_id = curseforge_id
@@ -245,7 +247,7 @@ async def process_mod_async(num_id, session, progress, task):
             "num_id": num_id,
             "mod_name": mod_name,
             "latest_time": "读取过程出现错误",
-            "file_all": "",
+            "file_all": "[]",
             "website": website if 'website' in locals() else None,
             "matched": False
         }
