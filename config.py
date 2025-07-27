@@ -96,7 +96,7 @@ LastModified:
 Finished_upload: True
 Cookies:
 
-blacklist: 
+Blacklist: 
     -
 
 """
@@ -192,14 +192,28 @@ blacklist:
                     raise ValueError("Browser is not supported.")
 
     def write_config(self, key, value):
-        with open(self.config_file, 'r', encoding='utf-8') as file:
-            config = yaml.load(file)
-        if key in config:
-            config[key] = value
-        else:
-            raise KeyError(f"Key '{key}' not found in configuration file.")
-        with open(self.config_file, 'w', encoding='utf-8') as file:
-            yaml.dump(config, file)
+        try:
+            # Read current config
+            with open(self.config_file, 'r', encoding='utf-8') as file:
+                config = yaml.load(file)
+
+            # Update config
+            if key in config:
+                config[key] = value
+            else:
+                raise KeyError(f"Key '{key}' not found in configuration file.")
+
+            # Write to temp file first
+            temp_file = f"{self.config_file}.tmp"
+            with open(temp_file, 'w', encoding='utf-8') as file:
+                yaml.dump(config, file)
+
+            # Replace original with temp file
+            import os
+            os.replace(temp_file, self.config_file)
+        except Exception as e:
+            print(f"Error writing config: {e}")
+            raise
 
 if __name__ == "__main__":
     try:

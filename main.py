@@ -190,20 +190,25 @@ class ModManagerApp:
 
 
 # Application entry point
+import asyncio
+import sys
+
+
 def main():
+    # Fix Windows-specific asyncio issues
     if sys.platform == 'win32':
-        # Use SelectorEventLoop to avoid issues with ProactorEventLoop
         asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
-    app = ModManagerApp()
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
 
     try:
-        return loop.run_until_complete(app.run())
+        # Your main code here
+        loop.run_until_complete(ModManagerApp().run())
     finally:
-        # Ensure proper cleanup
+        # Ensure proper cleanup of all resources
         try:
+            # Cancel all pending tasks
             tasks = asyncio.all_tasks(loop)
             for task in tasks:
                 task.cancel()
@@ -212,7 +217,7 @@ def main():
             if tasks:
                 loop.run_until_complete(asyncio.gather(*tasks, return_exceptions=True))
 
-            # Close the loop properly
+            # Properly close the event loop
             loop.run_until_complete(loop.shutdown_asyncgens())
             loop.close()
         except Exception as e:

@@ -94,12 +94,12 @@ max_rowFIX -= 2
 
 
 # Get Curseforge project API JSON data
-async def get_cfwidget_api_json_async(cf_project_id, session):
+async def get_curseforge_api_json_async(cf_project_id, session):
     retry_count = 0
     max_retries = config.TIMEOUT_RETRY
     while retry_count < max_retries:
         try:
-            async with session.get(f'https://api.curseforge.com/v1/mods/{cf_project_id}/files',
+            async with session.get(f'https://api.curseforge.com/v1/mods/{cf_project_id}/files?&pageSize=5000',
                                    headers=cf_headers, timeout=420) as response:
                 return await response.json()
         except aiohttp.ClientResponseError as e:
@@ -173,7 +173,7 @@ async def process_mod_async(num_id, session, progress, task):
             used_id = curseforge_id
             website = "Curseforge"
             if not str(used_id).count("/"):
-                json_data = await get_cfwidget_api_json_async(used_id, session)
+                json_data = await get_curseforge_api_json_async(used_id, session)
                 if 'data' in json_data and json_data['data']:
                     file_all = json_data['data']
                     latest_time = str(dict(file_all[0])['fileDate'])
@@ -184,7 +184,7 @@ async def process_mod_async(num_id, session, progress, task):
             else:
                 latest_time = ""
                 for m in str(used_id).split("/"):
-                    json_data = await get_cfwidget_api_json_async(m, session)
+                    json_data = await get_curseforge_api_json_async(m, session)
                     if 'data' in json_data and json_data['data']:
                         file_all += json_data['data']
                         latest_time += str(dict(file_all[0])['fileDate']) + "  "
