@@ -2,7 +2,6 @@
 import os.path
 import time
 import pyautogui
-import pyperclip
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service as ChromeService
 from selenium.webdriver.edge.service import Service as EdgeService
@@ -24,7 +23,7 @@ if config.DOWNLOAD_PATH and config.LastModified:
     upload_folder = str(os.path.join(config.DOWNLOAD_PATH, str(config.LastModified)))
 else:
     raise ValueError("DOWNLOAD_PATH or LastModified is not set.")
-
+drive = None
 # 选择浏览器
 if config.CUSTOM_DRIVER_PATH is None:
     if config.Browser == "Chrome":
@@ -172,7 +171,7 @@ def upload_mod(available_files_path) -> Tuple[bool, str]:
         # 处理稍后上传的文件
         toLog("以下文件上传失败，现在进行处理：")
         for filename in sec_mods_upload:
-            toLog(filename)
+            toLog(filename.rstrip(".yaml"))
         # 重新上传
         upload_mod(sec_mods_upload.copy())
 
