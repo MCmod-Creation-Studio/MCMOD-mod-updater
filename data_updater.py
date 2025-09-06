@@ -377,6 +377,7 @@ async def main():
         toLog(f"发现已更新的模组：\n {DuplicatesList}")
         config.write_config("LastModified", str(validify_processesTime))
         config.write_config("Finished_upload", False)
+        config.Finished_upload = False
     else:
         toLog("没有发现已更新的模组")
 

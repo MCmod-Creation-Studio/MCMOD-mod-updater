@@ -1,5 +1,6 @@
 import ruamel.yaml
 import os
+
 yaml = ruamel.yaml.YAML(typ='rt')
 
 
@@ -151,7 +152,7 @@ Blacklist:
             self.ZMAIL_TO = config.get('ZMAIL_TO', None)
 
             self.LastModified = config.get('LastModified', None)
-            self.Finished_upload = config.get('Finished_upload', True)
+            self.Finished_upload = config.get('Finished_upload', False)
             self.Cookies = config.get('Cookies', None)
 
             self.blacklist_enabled = config.get('blacklist_enabled', False)
@@ -215,9 +216,12 @@ Blacklist:
             print(f"Error writing config: {e}")
             raise
 
+
+configInstance = Config()
+
 if __name__ == "__main__":
     try:
-        config = Config()
+        config = configInstance
         print("===Configuration Test===")
     except (FileNotFoundError, ValueError) as e:
         print(e)

@@ -11,7 +11,7 @@ class ModManagerApp:
         # Import configuration at initialization
         import config
         from toLog import toLog
-        self.config = config.Config()
+        self.config = config.configInstance
         self.logging = toLog
 
     async def cleanup_mod_folders(self):

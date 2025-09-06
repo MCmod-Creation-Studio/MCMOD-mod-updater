@@ -14,7 +14,8 @@ from distutils.version import LooseVersion
 from mod_downloader import requests_download, check_oversize
 
 yaml = config.yaml
-config = config.Config()
+config = config.configInstance
+config.load_config()
 
 url = "https://modfile-dl.mcmod.cn/admin/"
 login_url = "https://www.mcmod.cn/login/"
@@ -131,7 +132,7 @@ def upload_mod(available_files_path) -> Tuple[bool, str]:
 
                     toLog("正在下载文件："+filename)
                     requests_download(content['downloadUrl'], config.LastModified, content['fileName'])
-                    toLog("正在自动化操作，请勿接触键盘")
+                    toLog("正在自动化操作，请勿接触正在运行的浏览器实例")
                     drive.find_element(By.XPATH, "//button[contains(text(),'上传文件')]").click()
                     to_type = os.path.abspath(os.path.join(upload_folder, filename))
                     time.sleep(0.8)
@@ -234,9 +235,9 @@ def fill_mod_detail(info):
             # 否则，单独添加
             merged_versions.extend(sorted(group, key=LooseVersion, reverse=True))
 
-    content = "/".join(merged_versions)
+    versionContent = "/".join(merged_versions)
 
-    drive.find_element(By.ID, "modfile-upload-mcver").send_keys(content)
+    drive.find_element(By.ID, "modfile-upload-mcver").send_keys(versionContent)
 
     # 支持平台
     # JAVA版 (JAVA Edition)/基岩版 (Bedrock Edition)
@@ -332,7 +333,7 @@ def fill_mod_detail(info):
 
     if any([platform_tick, function_tick]):
         toLog("自动化操作完成！")
-        toLog("自动化操作内容："+str(content)+auto_tick_content)
+        toLog("自动化操作内容："+str(versionContent)+" "+auto_tick_content)
         if not tag_tick:
             toLog("文件标签未被自动填写")
     else:
